@@ -39,5 +39,6 @@ int main()
     std::vector<std::vector<Ciphertext>> output = server.process(enc_input);
 
     std::vector<std::vector<double>> result = client.postprocess(output);
+    // std::cout << "eof" << std::endl;
     return 0;
 }

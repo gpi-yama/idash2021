@@ -9,13 +9,14 @@ namespace capsuleGene
         uint32_t i, j;
         std::vector<std::vector<double>> output(N, std::vector<double>(M, 0.0));
 #pragma omp parallel for private(i, j)
-        for (i = 0; i < N; ++i)
+        for (i = 0; i < N; i++)
         {
             for (j = 0; j < M; j++)
             {
-                output[i][j] = MathUtils::sigmoid(x[i][j]);
+                output[i][j] = 1.0 / (1.0 + exp(-x[i][j]));
             }
         }
+        return output;
     }
 
     std::vector<double> MathUtils::sigmoid(std::vector<double> &x)

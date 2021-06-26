@@ -94,11 +94,10 @@ namespace capsuleGene
         std::vector<double> likelihood;
         std::vector<std::vector<double>> result(size);
 
-#pragma omp parallel for private(likelihood)
+#pragma omp parallel for
         for (i = 0; i < size; i++)
         {
-            likelihood = this->decrypt(x[i]);
-            result[i] = likelihood;
+            result[i] = this->decrypt(x[i]);
         }
         return this->postprocessor.process(result);
     }
