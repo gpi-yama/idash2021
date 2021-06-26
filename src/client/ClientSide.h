@@ -1,5 +1,7 @@
 #include "../common.h"
-#include "../preprocess/PreProcessor.h"
+#include "../preprocess/DummyPreprocessor.h"
+#include "../postprocess/SigmoidPostprocessor.h"
+// #include "../preprocess/PreProcessor.h"
 
 namespace capsuleGene
 {
@@ -17,7 +19,8 @@ namespace capsuleGene
         double scale;
         int ploy_modulus_degree;
         std::vector<int32_t> modulus_chain;
-        Preprocessor preprocessor;
+        DummyPreprocessor preprocessor;
+        SigmoidPostprocessor postprocessor;
 
     private:
         /**
@@ -54,13 +57,21 @@ namespace capsuleGene
          */
         std::vector<std::vector<double>> preprocess(std::vector<std::string> &input);
 
+        /**
+         * @brief decrypt ciphertext
+         * 
+         * @param x 
+         * @return std::vector<double>
+         */
+        std::vector<double> decrypt(std::vector<Ciphertext> &x);
+
     public:
         /**
          * @brief Construct a new Client Side object
          * 
          * @param preprocessor 
          */
-        ClientSide(Preprocessor &preprocessor);
+        ClientSide(DummyPreprocessor &preprocessor);
 
         /**
          * @brief generate keys and evaluators and set as private variables
@@ -79,10 +90,13 @@ namespace capsuleGene
          */
         std::vector<Ciphertext> process(std::vector<std::string> &input);
 
+        std::vector<std::vector<double>> postprocess(std::vector<std::vector<Ciphertext>> &x);
+
         // Getter
         std::shared_ptr<Evaluator> getEvaluator();
         std::shared_ptr<Encryptor> getEncryptor();
         std::shared_ptr<Decryptor> getDecryptor();
+        std::shared_ptr<CKKSEncoder> getEncoder();
         std::shared_ptr<PublicKey> getPublicKey();
         std::shared_ptr<SecretKey> getSecretKey();
         std::shared_ptr<GaloisKeys> getGalKey();

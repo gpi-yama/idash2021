@@ -1,7 +1,9 @@
+#pragma once
 #include <vector>
 #include <cmath>
 #include <cstdint>
 #include <omp.h>
+#include <iostream>
 
 namespace capsuleGene
 {

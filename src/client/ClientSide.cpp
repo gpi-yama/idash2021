@@ -2,10 +2,19 @@
 
 namespace capsuleGene
 {
-    ClientSide::ClientSide(Preprocessor &preprocessor)
+    ClientSide::ClientSide(DummyPreprocessor &preprocessor)
     {
         this->preprocessor = preprocessor;
     };
+
+    EncryptionParameters ClientSide::generateParameters(double scale, std::vector<int32_t> &modulus_chain, int poly_modulus_degree)
+    {
+        this->scale = scale;
+        EncryptionParameters parms(scheme_type::ckks);
+        parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, modulus_chain));
+        parms.set_poly_modulus_degree(poly_modulus_degree);
+        return parms;
+    }
 
     void ClientSide::generate_keys(double scale, std::vector<int32_t> &modulus_chain, int poly_modulus_degree)
     {
@@ -58,9 +67,72 @@ namespace capsuleGene
         return ctxt;
     }
 
+    std::vector<double> ClientSide::decrypt(std::vector<Ciphertext> &enc_x)
+    {
+        Plaintext plain;
+        std::vector<double> decrypted;
+        uint32_t i, size = enc_x.size();
+        std::vector<double> result(size);
+        for (i = 0; i < size; i++)
+        {
+            this->decryptor->decrypt(enc_x[i], plain);
+            this->encoder->decode(plain, decrypted);
+            result[i] = decrypted[0];
+        }
+        return result;
+    }
+
     std::vector<Ciphertext> ClientSide::process(std::vector<std::string> &input)
     {
         std::vector<std::vector<double>> feature = this->preprocess(input);
         return this->encrypt(feature);
+    }
+
+    std::vector<std::vector<double>> ClientSide::postprocess(std::vector<std::vector<Ciphertext>> &x)
+    {
+        uint32_t i, size = x.size();
+        std::vector<double> likelihood;
+        std::vector<std::vector<double>> result(size);
+
+#pragma omp parallel for private(likelihood)
+        for (i = 0; i < size; i++)
+        {
+            likelihood = this->decrypt(x[i]);
+            result[i] = likelihood;
+        }
+        return this->postprocessor.process(result);
+    }
+
+    std::shared_ptr<Evaluator> ClientSide::getEvaluator()
+    {
+        return this->evaluator;
+    }
+    std::shared_ptr<Encryptor> ClientSide::getEncryptor()
+    {
+        return this->encryptor;
+    }
+    std::shared_ptr<Decryptor> ClientSide::getDecryptor()
+    {
+        return this->decryptor;
+    }
+    std::shared_ptr<CKKSEncoder> ClientSide::getEncoder()
+    {
+        return this->encoder;
+    }
+    std::shared_ptr<PublicKey> ClientSide::getPublicKey()
+    {
+        return this->public_key;
+    }
+    std::shared_ptr<SecretKey> ClientSide::getSecretKey()
+    {
+        throw std::runtime_error("You cannot get secret key!");
+    }
+    std::shared_ptr<GaloisKeys> ClientSide::getGalKey()
+    {
+        return this->gal_keys;
+    }
+    std::shared_ptr<RelinKeys> ClientSide::getRelinKeys()
+    {
+        return this->relin_keys;
     }
 }

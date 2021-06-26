@@ -1,10 +1,15 @@
-#include "PreProcessor.h"
+// #include "PreProcessor.h"
+#pragma once
+#include <vector>
+#include <string>
 
 namespace capsuleGene
 {
-    class DummyPreprocessor : public Preprocessor
+    class DummyPreprocessor //: public Preprocessor
     {
     public:
-        std::vector<std::vector<double>> process(std::vector<std::string> &input) override;
+        DummyPreprocessor(){};
+        ~DummyPreprocessor(){};
+        std::vector<std::vector<double>> process(std::vector<std::string> &input); // override;
     };
 }

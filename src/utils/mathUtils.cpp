@@ -7,8 +7,7 @@ namespace capsuleGene
         const uint32_t N = x.size();
         const uint32_t M = x[0].size();
         uint32_t i, j;
-
-        std::vector<std::vector<double>> output(N, std::vector<double>(M));
+        std::vector<std::vector<double>> output(N, std::vector<double>(M, 0.0));
 #pragma omp parallel for private(i, j)
         for (i = 0; i < N; ++i)
         {

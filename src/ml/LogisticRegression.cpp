@@ -14,18 +14,20 @@ namespace capsuleGene
         this->output_dim = output_dim;
     };
 
-    std::vector<Ciphertext> LogisticRegression::predict(std::vector<Ciphertext> &x)
+    std::vector<std::vector<Ciphertext>> LogisticRegression::predict(std::vector<Ciphertext> &x)
     {
         uint32_t i, j, size = x.size();
-        std::vector<Ciphertext> result(size);
+        std::vector<Ciphertext> likelihood(size);
+        std::vector<std::vector<Ciphertext>> result(this->output_dim);
         for (j = 0; j < this->output_dim; j++)
         {
-#pragma omp parallel for
+#pragma omp parallel for private(likelihood)
             for (i = 0; i < size; i++)
             {
-                result[i] = AlgebraUtils::multiply(x[i], this->weight[j], this->evaluator, this->rel_keys, this->encoder, this->scale);
-                result[i] = AlgebraUtils::rotate_and_sum_in_col(result[i], this->input_dim, this->evaluator, this->gal_keys, this->encoder, this->slot_size, this->scale);
+                likelihood[i] = AlgebraUtils::multiply(x[i], this->weight[j], this->evaluator, this->rel_keys, this->encoder, this->scale);
+                likelihood[i] = AlgebraUtils::rotate_and_sum_in_col(likelihood[i], this->input_dim, this->evaluator, this->gal_keys, this->encoder, this->slot_size, this->scale);
             }
+            result[j] = likelihood;
         }
         return result;
     };
@@ -47,9 +49,18 @@ namespace capsuleGene
         }
     }
 
-    Postprocessor LogisticRegression::gen_postprocessor()
+    SigmoidPostprocessor LogisticRegression::gen_postprocessor()
     {
-        Postprocessor postprocessor = SigmoidPostprocessor();
+        SigmoidPostprocessor postprocessor = SigmoidPostprocessor();
         return postprocessor;
+    }
+
+    void LogisticRegression::set_bias(std::vector<double> bias)
+    {
+        this->bias = bias;
+    }
+    void LogisticRegression::set_weight(std::vector<std::vector<double>> weight)
+    {
+        this->weight = weight;
     }
 }
