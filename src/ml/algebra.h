@@ -4,11 +4,9 @@ namespace capsuleGene
 {
     class AlgebraUtils
     {
-    private:
-        static void test();
-        static std::vector<double> generate_unit_vec(int num, int slot_num, double scale);
-
     public:
+        static std::vector<double> generate_unit_vec(const int num, const int slot_size, const double value);
+
         /**
          * @brief sum for ctxt. please set num as negative if you want to sum to 0idx.
          * 
@@ -16,18 +14,18 @@ namespace capsuleGene
          * @param num 
          * @return Ciphertext 
          */
-        static Ciphertext rotate_and_sum_in_col(Ciphertext &x, int num, std::shared_ptr<Evaluator> eval, std::shared_ptr<GaloisKeys> gal_key, std::shared_ptr<CKKSEncoder> encoder, int slot_size, double scale);
+        static Ciphertext rotate_and_sum_in_col(const Ciphertext &x, const int num, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<GaloisKeys> gal_keys, const std::shared_ptr<CKKSEncoder> encoder, const int slot_size, const double scale);
 
         /**
          * @brief multiply two ctxt
          * 
          * @param x 
          * @param y 
-         * @param eval evaluator
-         * @param relKey relin key
+         * @param evaluator evaluator
+         * @param rel_keys relin key
          * @return Ciphertext 
          */
-        static Ciphertext multiply(Ciphertext &x, Ciphertext &y, std::shared_ptr<Evaluator> eval, std::shared_ptr<RelinKeys> relKey);
+        static Ciphertext multiply(const Ciphertext &x, const Ciphertext &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<RelinKeys> rel_keys);
 
         /**
          * @brief multiply ctxt and vector
@@ -35,11 +33,24 @@ namespace capsuleGene
          * @param x 
          * @param y 
          * @param evaluator 
-         * @param relKey 
+         * @param rel_keys 
          * @param encoder 
          * @param scale 
          * @return Ciphertext 
          */
-        static Ciphertext multiply(Ciphertext &x, std::vector<double> &y, std::shared_ptr<Evaluator> evaluator, std::shared_ptr<RelinKeys> relKey, std::shared_ptr<CKKSEncoder> encoder, double scale);
+        static Ciphertext multiply(const Ciphertext &x, const std::vector<double> &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<RelinKeys> rel_keys, const std::shared_ptr<CKKSEncoder> encoder, double scale);
+
+        /**
+         * @brief add ctxt and vector
+         * 
+         * @param x 
+         * @param y 
+         * @param evaluator 
+         * @param rel_keys 
+         * @param encoder 
+         * @param scale 
+         * @return Ciphertext 
+         */
+        static Ciphertext add(Ciphertext &x, const std::vector<double> &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<CKKSEncoder> encoder, const double scale);
     };
 }

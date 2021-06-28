@@ -4,7 +4,6 @@
 #include <sstream>
 #include <iostream>
 
-using namespace std;
 // using namespace NTL;
 
 namespace capsuleGene
@@ -18,7 +17,7 @@ namespace capsuleGene
 
 */
     public:
-        static std::vector<std::vector<double>> read_csv(string file_path, bool header = true, bool index = true);
+        static std::vector<std::vector<double>> read_csv(const std::string file_path, const bool header = true, const bool index = true);
     };
 
 }

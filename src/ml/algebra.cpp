@@ -2,7 +2,7 @@
 
 namespace capsuleGene
 {
-    Ciphertext AlgebraUtils::multiply(Ciphertext &x, Ciphertext &y, std::shared_ptr<Evaluator> evaluator, std::shared_ptr<RelinKeys> rel_keys)
+    Ciphertext AlgebraUtils::multiply(const Ciphertext &x, const Ciphertext &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<RelinKeys> rel_keys)
     {
         Ciphertext mult;
         evaluator->multiply(x, y, mult);
@@ -11,7 +11,7 @@ namespace capsuleGene
         return mult;
     }
 
-    Ciphertext AlgebraUtils::multiply(Ciphertext &x, std::vector<double> &y, std::shared_ptr<Evaluator> evaluator, std::shared_ptr<RelinKeys> rel_keys, std::shared_ptr<CKKSEncoder> encoder, double scale)
+    Ciphertext AlgebraUtils::multiply(const Ciphertext &x, const std::vector<double> &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<RelinKeys> rel_keys, const std::shared_ptr<CKKSEncoder> encoder, double scale)
     {
         Ciphertext mult;
         Plaintext plain;
@@ -22,7 +22,7 @@ namespace capsuleGene
         return mult;
     }
 
-    Ciphertext AlgebraUtils::rotate_and_sum_in_col(Ciphertext &x, int num, std::shared_ptr<Evaluator> evaluator, std::shared_ptr<GaloisKeys> gal_keys, std::shared_ptr<CKKSEncoder> encoder, int slot_size, double scale)
+    Ciphertext AlgebraUtils::rotate_and_sum_in_col(const Ciphertext &x, const int num, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<GaloisKeys> gal_keys, const std::shared_ptr<CKKSEncoder> encoder, const int slot_size, const double scale)
     {
         Ciphertext ctxt;
         Plaintext plain;
@@ -36,14 +36,26 @@ namespace capsuleGene
         return ctxt;
     }
 
-    std::vector<double> AlgebraUtils::generate_unit_vec(int num, int slot_size, double scale)
+    std::vector<double> AlgebraUtils::generate_unit_vec(const int num, const int slot_size, const double value)
     {
         std::vector<double> ones(slot_size, 0.0);
 #pragma omp parallel for
         for (int i = 0; i < num; i++)
         {
-            ones[i] = 1.0;
+            ones[i] = value;
         };
         return ones;
+    }
+
+    Ciphertext AlgebraUtils::add(Ciphertext &x, const std::vector<double> &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<CKKSEncoder> encoder, const double scale)
+    {
+        Ciphertext added;
+        Plaintext plain;
+        int scale_n = int(round(log2(x.scale())));
+        x.scale() = pow(2.0, scale_n);
+        encoder->encode(y, x.scale(), plain);
+        evaluator->mod_switch_to_inplace(plain, x.parms_id());
+        evaluator->add_plain(x, plain, added);
+        return added;
     }
 }

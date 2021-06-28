@@ -2,23 +2,18 @@
 
 namespace capsuleGene
 {
-    ClientSide::ClientSide(DummyPreprocessor &preprocessor)
+    EncryptionParameters ClientSide::generateParameters(const double scale, const std::vector<int32_t> &modulus_chain, const int poly_modulus_degree)
     {
-        this->preprocessor = preprocessor;
-    };
-
-    EncryptionParameters ClientSide::generateParameters(double scale, std::vector<int32_t> &modulus_chain, int poly_modulus_degree)
-    {
-        this->scale = scale;
         EncryptionParameters parms(scheme_type::ckks);
         parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, modulus_chain));
         parms.set_poly_modulus_degree(poly_modulus_degree);
         return parms;
     }
 
-    void ClientSide::generate_keys(double scale, std::vector<int32_t> &modulus_chain, int poly_modulus_degree)
+    void ClientSide::generate_keys(const double scale, const std::vector<int32_t> &modulus_chain, const int poly_modulus_degree)
     {
-        EncryptionParameters parms = this->generateParameters(scale, modulus_chain, poly_modulus_degree);
+        this->scale = scale;
+        EncryptionParameters parms = ClientSide::generateParameters(scale, modulus_chain, poly_modulus_degree);
 
         // create context
         std::shared_ptr<SEALContext> context = std::make_shared<SEALContext>(parms);
@@ -48,12 +43,12 @@ namespace capsuleGene
         this->relin_keys = std::make_shared<RelinKeys>(relin_keys);
     }
 
-    std::vector<std::vector<double>> ClientSide::preprocess(std::vector<std::string> &input)
+    std::vector<std::vector<double>> ClientSide::preprocess(const std::vector<std::string> &input)
     {
-        return this->preprocessor.process(input);
+        return DummyPreprocessor::process(input);
     }
 
-    std::vector<Ciphertext> ClientSide::encrypt(std::vector<std::vector<double>> &input)
+    std::vector<Ciphertext> ClientSide::encrypt(const std::vector<std::vector<double>> &input)
     {
         uint32_t i, size = input.size();
         Plaintext plain;
@@ -67,7 +62,7 @@ namespace capsuleGene
         return ctxt;
     }
 
-    std::vector<double> ClientSide::decrypt(std::vector<Ciphertext> &enc_x)
+    std::vector<double> ClientSide::decrypt(const std::vector<Ciphertext> &enc_x)
     {
         Plaintext plain;
         std::vector<double> decrypted;
@@ -82,13 +77,12 @@ namespace capsuleGene
         return result;
     }
 
-    std::vector<Ciphertext> ClientSide::process(std::vector<std::string> &input)
+    std::vector<Ciphertext> ClientSide::process(const std::vector<std::string> &input)
     {
-        std::vector<std::vector<double>> feature = this->preprocess(input);
-        return this->encrypt(feature);
+        return this->encrypt(ClientSide::preprocess(input));
     }
 
-    std::vector<std::vector<double>> ClientSide::postprocess(std::vector<std::vector<Ciphertext>> &x)
+    std::vector<std::vector<double>> ClientSide::postprocess(const std::vector<std::vector<Ciphertext>> &x)
     {
         uint32_t i, size = x.size();
         std::vector<double> likelihood;
@@ -99,7 +93,7 @@ namespace capsuleGene
         {
             result[i] = this->decrypt(x[i]);
         }
-        return this->postprocessor.process(result);
+        return SigmoidPostprocessor::process(result);
     }
 
     std::shared_ptr<Evaluator> ClientSide::getEvaluator()

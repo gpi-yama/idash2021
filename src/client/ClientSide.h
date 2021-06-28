@@ -19,8 +19,6 @@ namespace capsuleGene
         double scale;
         int ploy_modulus_degree;
         std::vector<int32_t> modulus_chain;
-        DummyPreprocessor preprocessor;
-        SigmoidPostprocessor postprocessor;
 
     private:
         /**
@@ -31,23 +29,16 @@ namespace capsuleGene
          * @param poly_modulus_degree 
          * @return EncryptionParameters 
          */
-        EncryptionParameters generateParameters(double scale, std::vector<int32_t> &modulus_chain, int poly_modulus_degree);
+        static EncryptionParameters generateParameters(const double scale, const std::vector<int32_t> &modulus_chain, const int poly_modulus_degree);
 
-        /**
-         * @brief generate keys
-         * 
-         * @param parms EncryptionParameters
-         * @return std::tuple<PublicKey, SecretKey, RelinKeys, GaloisKeys, std::shared_ptr<SEALContext>> 
-         */
-        std::tuple<PublicKey, SecretKey, RelinKeys, GaloisKeys, std::shared_ptr<SEALContext>> gen_keys(EncryptionParameters parms);
-
+    public:
         /**
          * @brief encrypt inptu matrix
          * 
          * @param input matrix
          * @return std::vector<Ciphertext> 
          */
-        std::vector<Ciphertext> encrypt(std::vector<std::vector<double>> &input);
+        std::vector<Ciphertext> encrypt(const std::vector<std::vector<double>> &input);
 
         /**
          * @brief preprocess
@@ -55,7 +46,7 @@ namespace capsuleGene
          * @param input vector of strings
          * @return std::vector<std::vector<double>> 
          */
-        std::vector<std::vector<double>> preprocess(std::vector<std::string> &input);
+        static std::vector<std::vector<double>> preprocess(const std::vector<std::string> &input);
 
         /**
          * @brief decrypt ciphertext
@@ -63,15 +54,12 @@ namespace capsuleGene
          * @param x 
          * @return std::vector<double>
          */
-        std::vector<double> decrypt(std::vector<Ciphertext> &x);
+        std::vector<double> decrypt(const std::vector<Ciphertext> &x);
 
-    public:
         /**
          * @brief Construct a new Client Side object
-         * 
-         * @param preprocessor 
          */
-        ClientSide(DummyPreprocessor &preprocessor);
+        ClientSide(){};
 
         /**
          * @brief generate keys and evaluators and set as private variables
@@ -80,7 +68,7 @@ namespace capsuleGene
          * @param modulus_chain 
          * @param poly_modulus_degree 
          */
-        void generate_keys(double scale, std::vector<int32_t> &modulus_chain, int poly_modulus_degree);
+        void generate_keys(const double scale, const std::vector<int32_t> &modulus_chain, const int poly_modulus_degree);
 
         /**
          * @brief Client side preprocessing
@@ -88,9 +76,9 @@ namespace capsuleGene
          * @param input batched input vector
          * @return std::vector<Ciphertext> 
          */
-        std::vector<Ciphertext> process(std::vector<std::string> &input);
+        std::vector<Ciphertext> process(const std::vector<std::string> &input);
 
-        std::vector<std::vector<double>> postprocess(std::vector<std::vector<Ciphertext>> &x);
+        std::vector<std::vector<double>> postprocess(const std::vector<std::vector<Ciphertext>> &x);
 
         // Getter
         std::shared_ptr<Evaluator> getEvaluator();

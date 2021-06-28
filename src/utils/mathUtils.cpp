@@ -2,7 +2,7 @@
 
 namespace capsuleGene
 {
-    std::vector<std::vector<double>> MathUtils::sigmoid(std::vector<std::vector<double>> &x)
+    std::vector<std::vector<double>> MathUtils::sigmoid(const std::vector<std::vector<double>> &x)
     {
         const uint32_t N = x.size();
         const uint32_t M = x[0].size();
@@ -19,7 +19,7 @@ namespace capsuleGene
         return output;
     }
 
-    std::vector<double> MathUtils::sigmoid(std::vector<double> &x)
+    std::vector<double> MathUtils::sigmoid(const std::vector<double> &x)
     {
         const uint32_t N = x.size();
         uint32_t i;
@@ -33,7 +33,7 @@ namespace capsuleGene
         return output;
     }
 
-    double MathUtils::sigmoid(double &x)
+    double MathUtils::sigmoid(const double &x)
     {
         return 1.0 / (1.0 + exp(-x));
     }

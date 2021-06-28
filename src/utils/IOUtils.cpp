@@ -2,7 +2,7 @@
 
 namespace capsuleGene
 {
-    std::vector<std::vector<double>> IOUtils::read_csv(string file_path, bool header, bool index)
+    std::vector<std::vector<double>> IOUtils::read_csv(const std::string file_path, const bool header, const bool index)
     {
         std::vector<std::vector<double>> csv;
         int index_col = -1, header_row = -1, row_count = 0;

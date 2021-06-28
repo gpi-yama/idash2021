@@ -13,6 +13,7 @@ if(NOT DEFINED SEAL_BUILD_EXAMPLES)
 endif()
 
 if(SEAL_BUILD_EXAMPLES)
+    set(CMAKE_CXX_FLAGS "-g -O3 -fpermissive -fopenmp ")
     add_executable(sealexamples)
 
     target_sources(sealexamples

@@ -2,7 +2,7 @@
 
 namespace capsuleGene
 {
-    LogisticRegression::LogisticRegression(uint32_t input_dim, uint32_t output_dim, double scale, std::shared_ptr<Evaluator> evaluator, std::shared_ptr<Encryptor> encryptor, std::shared_ptr<CKKSEncoder> encoder, std::shared_ptr<GaloisKeys> gal_keys, std::shared_ptr<RelinKeys> rel_keys)
+    LogisticRegression::LogisticRegression(const uint32_t input_dim, const uint32_t output_dim, const double scale, const int slot_size, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<Encryptor> encryptor, const std::shared_ptr<CKKSEncoder> encoder, const std::shared_ptr<GaloisKeys> gal_keys, const std::shared_ptr<RelinKeys> rel_keys)
     {
         this->evaluator = evaluator;
         this->encryptor = encryptor;
@@ -12,48 +12,32 @@ namespace capsuleGene
         this->scale = scale;
         this->input_dim = input_dim;
         this->output_dim = output_dim;
+        this->slot_size = slot_size;
     };
 
-    std::vector<std::vector<Ciphertext>> LogisticRegression::predict(std::vector<Ciphertext> &x)
+    std::vector<std::vector<Ciphertext>> LogisticRegression::predict(const std::vector<Ciphertext> &x)
     {
         uint32_t i, j, size = x.size();
-        std::vector<Ciphertext> likelihood(size);
-        std::vector<std::vector<Ciphertext>> result(this->output_dim);
+        std::vector<std::vector<Ciphertext>> result(size);
+        std::vector<std::vector<double>> bias_vec(this->output_dim);
         for (j = 0; j < this->output_dim; j++)
         {
-#pragma omp parallel for private(likelihood)
-            for (i = 0; i < size; i++)
+            bias_vec[j] = std::vector<double>(1, bias[j]);
+        }
+#pragma omp parallel for private(i, j)
+        for (i = 0; i < size; i++)
+        {
+            std::vector<Ciphertext> likelihood(this->output_dim);
+            for (j = 0; j < this->output_dim; j++)
             {
-                likelihood[i] = AlgebraUtils::multiply(x[i], this->weight[j], this->evaluator, this->rel_keys, this->encoder, this->scale);
-                likelihood[i] = AlgebraUtils::rotate_and_sum_in_col(likelihood[i], this->input_dim, this->evaluator, this->gal_keys, this->encoder, this->slot_size, this->scale);
+                likelihood[j] = AlgebraUtils::multiply(x[i], this->weight[j], this->evaluator, this->rel_keys, this->encoder, this->scale);
+                likelihood[j] = AlgebraUtils::rotate_and_sum_in_col(likelihood[j], this->input_dim, this->evaluator, this->gal_keys, this->encoder, this->slot_size, this->scale);
+                likelihood[j] = AlgebraUtils::add(likelihood[j], bias_vec[j], this->evaluator, this->encoder, this->scale);
             }
-            result[j] = likelihood;
+            result[i] = likelihood;
         }
         return result;
     };
-
-    std::vector<std::vector<double>> LogisticRegression::sigmoid(std::vector<std::vector<double>> &x)
-    {
-        const uint32_t N = x.size();
-        const uint32_t M = x[0].size();
-        uint32_t i, j;
-
-        std::vector<std::vector<double>> output(N, std::vector<double>(M));
-#pragma omp parallel for private(i, j)
-        for (i = 0; i < N; ++i)
-        {
-            for (j = 0; j < M; j++)
-            {
-                output[i][j] = 1.0 / (1.0 + exp(-x[i][j]));
-            }
-        }
-    }
-
-    SigmoidPostprocessor LogisticRegression::gen_postprocessor()
-    {
-        SigmoidPostprocessor postprocessor = SigmoidPostprocessor();
-        return postprocessor;
-    }
 
     void LogisticRegression::set_bias(std::vector<double> bias)
     {
