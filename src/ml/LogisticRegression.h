@@ -7,7 +7,7 @@ namespace capsuleGene
     {
     private:
         std::vector<std::vector<double>> weight;
-        std::vector<double> bias;
+        std::vector<std::vector<double>> bias;
         uint32_t output_dim;
         uint32_t input_dim;
         std::shared_ptr<Evaluator> evaluator;
@@ -15,6 +15,7 @@ namespace capsuleGene
         std::shared_ptr<CKKSEncoder> encoder;
         std::shared_ptr<GaloisKeys> gal_keys;
         std::shared_ptr<RelinKeys> rel_keys;
+        std::shared_ptr<Decryptor> decryptor;
         double scale;
         int slot_size;
 
@@ -27,7 +28,8 @@ namespace capsuleGene
         std::vector<std::vector<Ciphertext>> predict(const std::vector<Ciphertext> &x);
 
         // setter
-        void set_bias(const std::vector<double> bias);
+        void set_bias(const std::vector<std::vector<double>> bias);
         void set_weight(const std::vector<std::vector<double>> weight);
+        void set_decryptor(std::shared_ptr<Decryptor> decryptor);
     };
 }

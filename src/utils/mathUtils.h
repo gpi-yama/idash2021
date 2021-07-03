@@ -13,5 +13,7 @@ namespace capsuleGene
         static std::vector<std::vector<double>> sigmoid(const std::vector<std::vector<double>> &x);
         static std::vector<double> sigmoid(const std::vector<double> &x);
         static double sigmoid(const double &x);
+
+        static std::vector<std::vector<double>> softmax(const std::vector<std::vector<double>> &x);
     };
 }

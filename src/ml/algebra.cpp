@@ -16,6 +16,7 @@ namespace capsuleGene
         Ciphertext mult;
         Plaintext plain;
         encoder->encode(y, scale, plain);
+        // evaluator->mod_switch_to_inplace(plain, x.parms_id());
         evaluator->multiply_plain(x, plain, mult);
         evaluator->relinearize_inplace(mult, *rel_keys.get());
         evaluator->rescale_to_next_inplace(mult);
@@ -24,14 +25,13 @@ namespace capsuleGene
 
     Ciphertext AlgebraUtils::rotate_and_sum_in_col(const Ciphertext &x, const int num, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<GaloisKeys> gal_keys, const std::shared_ptr<CKKSEncoder> encoder, const int slot_size, const double scale)
     {
-        Ciphertext ctxt;
+        Ciphertext rotated, ctxt = x;
         Plaintext plain;
-        int nIter = int(log2(num) + 2);
-        ctxt = x;
+        int nIter = int(log2(num) + 1);
         for (int i = 0; i < nIter; i++)
         {
-            evaluator->rotate_vector(x, -pow(2, i), *gal_keys.get(), ctxt);
-            evaluator->add_inplace(ctxt, ctxt);
+            evaluator->rotate_vector(ctxt, pow(2, i), *gal_keys.get(), rotated);
+            evaluator->add(ctxt, rotated, ctxt);
         };
         return ctxt;
     }
@@ -53,7 +53,7 @@ namespace capsuleGene
         Plaintext plain;
         int scale_n = int(round(log2(x.scale())));
         x.scale() = pow(2.0, scale_n);
-        encoder->encode(y, x.scale(), plain);
+        encoder->encode(y, pow(2.0, scale_n), plain);
         evaluator->mod_switch_to_inplace(plain, x.parms_id());
         evaluator->add_plain(x, plain, added);
         return added;

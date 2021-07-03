@@ -15,7 +15,7 @@ namespace capsuleGene
         try
         {
             std::ifstream f(file_path);
-            f.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            f.exceptions(std::ifstream::badbit);
             while (f.good())
             {
                 std::getline(f, line);

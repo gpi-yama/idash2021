@@ -1,6 +1,6 @@
 #include "../common.h"
 #include "../preprocess/DummyPreprocessor.h"
-#include "../postprocess/SigmoidPostprocessor.h"
+#include "../postprocess/SoftmaxPostprocessor.h"
 // #include "../preprocess/PreProcessor.h"
 
 namespace capsuleGene
@@ -41,6 +41,14 @@ namespace capsuleGene
         std::vector<Ciphertext> encrypt(const std::vector<std::vector<double>> &input);
 
         /**
+         * @brief encrypt input vector
+         * 
+         * @param input vector
+         * @return std::vector<Ciphertext> 
+         */
+        Ciphertext encrypt(const std::vector<double> &input);
+
+        /**
          * @brief preprocess
          * 
          * @param input vector of strings
@@ -49,12 +57,20 @@ namespace capsuleGene
         static std::vector<std::vector<double>> preprocess(const std::vector<std::string> &input);
 
         /**
-         * @brief decrypt ciphertext
+         * @brief decrypt ciphertext vector
          * 
          * @param x 
          * @return std::vector<double>
          */
         std::vector<double> decrypt(const std::vector<Ciphertext> &x);
+
+        /**
+         * @brief decrypt ciphertext
+         * 
+         * @param x 
+         * @return std::vector<double>
+         */
+        std::vector<double> decrypt(const Ciphertext &x);
 
         /**
          * @brief Construct a new Client Side object

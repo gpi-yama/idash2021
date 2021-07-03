@@ -62,18 +62,37 @@ namespace capsuleGene
         return ctxt;
     }
 
+    Ciphertext ClientSide::encrypt(const std::vector<double> &input)
+    {
+        Plaintext plain;
+        Ciphertext ctxt;
+        this->encoder->encode(input, this->scale, plain);
+        this->encryptor->encrypt(plain, ctxt);
+        return ctxt;
+    }
+
     std::vector<double> ClientSide::decrypt(const std::vector<Ciphertext> &enc_x)
     {
         Plaintext plain;
-        std::vector<double> decrypted;
         uint32_t i, size = enc_x.size();
         std::vector<double> result(size);
+#pragma omp parallel for private(plain)
         for (i = 0; i < size; i++)
         {
+            std::vector<double> decrypted;
             this->decryptor->decrypt(enc_x[i], plain);
             this->encoder->decode(plain, decrypted);
             result[i] = decrypted[0];
         }
+        return result;
+    }
+
+    std::vector<double> ClientSide::decrypt(const Ciphertext &enc_x)
+    {
+        Plaintext plain;
+        std::vector<double> result;
+        this->decryptor->decrypt(enc_x, plain);
+        this->encoder->decode(plain, result);
         return result;
     }
 
@@ -93,7 +112,7 @@ namespace capsuleGene
         {
             result[i] = this->decrypt(x[i]);
         }
-        return SigmoidPostprocessor::process(result);
+        return SoftmaxPostprocessor::process(result);
     }
 
     std::shared_ptr<Evaluator> ClientSide::getEvaluator()
@@ -106,7 +125,8 @@ namespace capsuleGene
     }
     std::shared_ptr<Decryptor> ClientSide::getDecryptor()
     {
-        return this->decryptor;
+        throw std::runtime_error("You cannot get secret key!");
+        // return this->decryptor;
     }
     std::shared_ptr<CKKSEncoder> ClientSide::getEncoder()
     {
@@ -119,6 +139,7 @@ namespace capsuleGene
     std::shared_ptr<SecretKey> ClientSide::getSecretKey()
     {
         throw std::runtime_error("You cannot get secret key!");
+        // return this->secret_key();
     }
     std::shared_ptr<GaloisKeys> ClientSide::getGalKey()
     {

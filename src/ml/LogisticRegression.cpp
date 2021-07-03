@@ -13,17 +13,13 @@ namespace capsuleGene
         this->input_dim = input_dim;
         this->output_dim = output_dim;
         this->slot_size = slot_size;
+        weight.resize(output_dim, std::vector<double>(input_dim * 2, 0));
     };
 
     std::vector<std::vector<Ciphertext>> LogisticRegression::predict(const std::vector<Ciphertext> &x)
     {
         uint32_t i, j, size = x.size();
         std::vector<std::vector<Ciphertext>> result(size);
-        std::vector<std::vector<double>> bias_vec(this->output_dim);
-        for (j = 0; j < this->output_dim; j++)
-        {
-            bias_vec[j] = std::vector<double>(1, bias[j]);
-        }
 #pragma omp parallel for private(i, j)
         for (i = 0; i < size; i++)
         {
@@ -32,19 +28,34 @@ namespace capsuleGene
             {
                 likelihood[j] = AlgebraUtils::multiply(x[i], this->weight[j], this->evaluator, this->rel_keys, this->encoder, this->scale);
                 likelihood[j] = AlgebraUtils::rotate_and_sum_in_col(likelihood[j], this->input_dim, this->evaluator, this->gal_keys, this->encoder, this->slot_size, this->scale);
-                likelihood[j] = AlgebraUtils::add(likelihood[j], bias_vec[j], this->evaluator, this->encoder, this->scale);
+                likelihood[j] = AlgebraUtils::add(likelihood[j], bias[j], this->evaluator, this->encoder, this->scale);
             }
             result[i] = likelihood;
         }
         return result;
     };
 
-    void LogisticRegression::set_bias(std::vector<double> bias)
+    void LogisticRegression::set_bias(std::vector<std::vector<double>> bias)
     {
         this->bias = bias;
-    }
+    };
+
     void LogisticRegression::set_weight(std::vector<std::vector<double>> weight)
     {
-        this->weight = weight;
+        uint32_t i, j;
+
+#pragma omp parallel for
+        for (i = 0; i < output_dim; i++)
+        {
+            for (j = 0; j < input_dim; j++)
+            {
+                this->weight[i][j] = weight[i][j];
+            }
+        }
+    }
+
+    void LogisticRegression::set_decryptor(std::shared_ptr<Decryptor> decryptor)
+    {
+        this->decryptor = decryptor;
     }
 }
