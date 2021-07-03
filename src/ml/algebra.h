@@ -14,7 +14,7 @@ namespace capsuleGene
          * @param num 
          * @return Ciphertext 
          */
-        static Ciphertext rotate_and_sum_in_col(const Ciphertext &x, const int num, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<GaloisKeys> gal_keys, const std::shared_ptr<CKKSEncoder> encoder, const int slot_size, const double scale);
+        static Ciphertext rotate_and_sum_in_col(const Ciphertext &x, const int num, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<GaloisKeys> gal_keys);
 
         /**
          * @brief multiply two ctxt
@@ -51,6 +51,6 @@ namespace capsuleGene
          * @param scale 
          * @return Ciphertext 
          */
-        static Ciphertext add(Ciphertext &x, const std::vector<double> &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<CKKSEncoder> encoder, const double scale);
+        static Ciphertext add(Ciphertext &x, const std::vector<double> &y, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<CKKSEncoder> encoder);
     };
 }

@@ -76,10 +76,11 @@ namespace capsuleGene
         Plaintext plain;
         uint32_t i, size = enc_x.size();
         std::vector<double> result(size);
-#pragma omp parallel for private(plain)
+        std::vector<double> decrypted;
+
+#pragma omp parallel for private(plain, decrypted)
         for (i = 0; i < size; i++)
         {
-            std::vector<double> decrypted;
             this->decryptor->decrypt(enc_x[i], plain);
             this->encoder->decode(plain, decrypted);
             result[i] = decrypted[0];
@@ -104,7 +105,6 @@ namespace capsuleGene
     std::vector<std::vector<double>> ClientSide::postprocess(const std::vector<std::vector<Ciphertext>> &x)
     {
         uint32_t i, size = x.size();
-        std::vector<double> likelihood;
         std::vector<std::vector<double>> result(size);
 
 #pragma omp parallel for
