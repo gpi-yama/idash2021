@@ -1,3 +1,4 @@
+// need to clone and build https://github.com/kenmaro3/SEAL/tree/ckks_coeff_365
 #include <iostream>
 #include <algorithm>
 #include <cassert>
