@@ -3,14 +3,9 @@
 
 namespace capsuleGene
 {
-    ServerSide::ServerSide(const LogisticRegression &ml, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<Encryptor> encryptor, const std::shared_ptr<GaloisKeys> gal_keys, const std::shared_ptr<RelinKeys> rel_keyss, const std::shared_ptr<CKKSEncoder> encoder)
+    ServerSide::ServerSide(const LogisticRegression &ml)
     {
         this->ml = ml;
-        this->evaluator = evaluator;
-        this->encryptor = encryptor;
-        this->gal_keys = gal_keys;
-        this->rel_keys = rel_keys;
-        this->encoder = encoder;
     }
 
     std::vector<std::vector<Ciphertext>> ServerSide::process(const std::vector<Ciphertext> &x)

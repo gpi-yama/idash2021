@@ -8,7 +8,7 @@ using namespace capsuleGene;
 
 int main()
 {
-    std::chrono::system_clock::time_point start, end, start1, end1, start2, end2, start3, end3;
+    std::chrono::system_clock::time_point start, end, start1, end1;
     double elapsed;
     start = std::chrono::system_clock::now();
 
@@ -38,21 +38,14 @@ int main()
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
     std::cout << "client time: " << elapsed << std::endl;
 
-    const std::shared_ptr<Evaluator> evaluator = client.getEvaluator();
-    const std::shared_ptr<Encryptor> encryptor = client.getEncryptor();
-    const std::shared_ptr<GaloisKeys> gal_keys = client.getGalKey();
-    const std::shared_ptr<RelinKeys> rel_keyss = client.getRelinKeys();
-    const std::shared_ptr<CKKSEncoder> encoder = client.getEncoder();
-
-    LogisticRegression ml(input_dim, output_dim, scale, poly_modulus_degree, evaluator, encryptor, encoder, gal_keys, rel_keyss);
+    LogisticRegression ml(input_dim, output_dim, scale, poly_modulus_degree, client.getEvaluator(), client.getEncoder(), client.getGalKey(), client.getRelinKeys());
 
     start1 = std::chrono::system_clock::now();
 
-    ServerSide server(ml, evaluator, encryptor, gal_keys, rel_keyss, encoder);
+    ServerSide server(ml);
     server.load_weight("/home/yamaguchi/idash2021/coef.csv");
     server.load_bias("/home/yamaguchi/idash2021/bias.csv");
-    std::cout << "server process" << std::endl;
-    const std::vector<std::vector<Ciphertext>> output = server.process(enc_input);
+    const std::vector<std::vector<Ciphertext>> enc_result = server.process(enc_input);
 
     end1 = std::chrono::system_clock::now();
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
@@ -60,8 +53,7 @@ int main()
 
     start1 = std::chrono::system_clock::now();
 
-    std::cout << "client postprocess" << std::endl;
-    std::vector<std::vector<double>> result = client.postprocess(output);
+    std::vector<std::vector<double>> result = client.postprocess(enc_result);
 
     end1 = std::chrono::system_clock::now();
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
@@ -70,15 +62,18 @@ int main()
     // calculate accuracy
     std::vector<std::vector<double>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/out_tests.csv", false, false);
     int max, i;
-    int N = result.size();
+    int N = ans.size();
     float acc = 0.0;
 
-#pragma omp parallel for private(max) reduction(+ \
-                                                : acc)
     for (i = 0; i < N; i++)
     {
         max = distance(result[i].begin(), std::max_element(result[i].begin(), result[i].end()));
         acc += int(max == int(ans[i][0]));
+        // for (auto v : result[i])
+        // {
+        // std::cout << v << ", ";
+        // }
+        // std::cout << i << "," << max << ", " << ans[i][0] << std::endl;
     }
 
     std::cout << "ACC: " << acc / N << std::endl;

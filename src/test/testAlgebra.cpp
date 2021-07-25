@@ -24,7 +24,7 @@ TEST_F(AlgebraTest, rotate_and_sum_in_col)
     std::vector<double> v = {1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2};
     int ans = 33;
     Ciphertext enc_v = client.encrypt(v);
-    Ciphertext enc_result = AlgebraUtils::rotate_and_sum_in_col(enc_v, v.size(), client.getEvaluator(), client.getGalKey(), client.getEncoder(), poly_modulus_degree, scale);
+    Ciphertext enc_result = AlgebraUtils::rotate_and_sum_in_col(enc_v, v.size(), client.getEvaluator(), client.getGalKey());
     std::vector<double> result = client.decrypt(enc_result);
     EXPECT_FLOAT_EQ(result[0], ans);
 };
@@ -34,7 +34,7 @@ TEST_F(AlgebraTest, add)
     std::vector<double> v = {1, 2, 3, 4, 5, 1, 2, 3, 4, 5};
     std::vector<float> ans = {2, 4, 6, 8, 10, 2, 4, 6, 8, 10};
     Ciphertext enc_v = client.encrypt(v);
-    Ciphertext enc_result = AlgebraUtils::add(enc_v, v, client.getEvaluator(), client.getEncoder(), scale);
+    Ciphertext enc_result = AlgebraUtils::add(enc_v, v, client.getEvaluator(), client.getEncoder());
     std::vector<double> result = client.decrypt(enc_result);
     for (int i = 0; i < v.size(); i++)
     {
