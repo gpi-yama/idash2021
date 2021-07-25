@@ -62,15 +62,18 @@ int main()
     // calculate accuracy
     std::vector<std::vector<double>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/out_tests.csv", false, false);
     int max, i;
-    int N = result.size();
+    int N = ans.size();
     float acc = 0.0;
 
-#pragma omp parallel for private(max) reduction(+ \
-                                                : acc)
     for (i = 0; i < N; i++)
     {
         max = distance(result[i].begin(), std::max_element(result[i].begin(), result[i].end()));
         acc += int(max == int(ans[i][0]));
+        // for (auto v : result[i])
+        // {
+        // std::cout << v << ", ";
+        // }
+        // std::cout << i << "," << max << ", " << ans[i][0] << std::endl;
     }
 
     std::cout << "ACC: " << acc / N << std::endl;

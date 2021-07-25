@@ -13,6 +13,7 @@ namespace capsuleGene
     void ClientSide::generate_keys(const double scale, const std::vector<int32_t> &modulus_chain, const int poly_modulus_degree)
     {
         this->scale = scale;
+        this->poly_modulus_degree = poly_modulus_degree;
         EncryptionParameters parms = ClientSide::generateParameters(scale, modulus_chain, poly_modulus_degree);
 
         // create context
@@ -71,6 +72,37 @@ namespace capsuleGene
         return ctxt;
     }
 
+    std::vector<Ciphertext> ClientSide::batch_encrypt(const std::vector<std::vector<double>> &input)
+    {
+        Plaintext plain;
+        Ciphertext ctxt;
+
+        uint32_t i, j, k;
+        uint32_t N = input.size();
+        uint32_t input_dim = input[0].size();
+        this->slot_per_feat = pow(2, int(log2(input_dim) + 1));
+        uint32_t num_feat_per_ctxt = uint32_t(poly_modulus_degree / 2 / this->slot_per_feat);
+        uint32_t num_ctxt = int(N / num_feat_per_ctxt + 1);
+        std::vector<Ciphertext> ctxt_list(num_ctxt);
+
+#pragma omp parallel for
+        for (i = 0; i < num_ctxt; i++)
+        {
+            std::vector<double> feat_in_single_vec(poly_modulus_degree / 2, 0.0);
+            for (j = 0; j < num_feat_per_ctxt; j++)
+            {
+                if (i * num_feat_per_ctxt + j >= N)
+                    break;
+                for (k = 0; k < input_dim; k++)
+                {
+                    feat_in_single_vec[k + j * this->slot_per_feat] = input[j + num_feat_per_ctxt * i][k];
+                }
+            }
+            ctxt_list[i] = this->encrypt(feat_in_single_vec);
+        }
+        return ctxt_list;
+    }
+
     std::vector<double> ClientSide::decrypt(const std::vector<Ciphertext> &enc_x)
     {
         Plaintext plain;
@@ -97,21 +129,39 @@ namespace capsuleGene
         return result;
     }
 
+    std::vector<std::vector<double>> ClientSide::batch_decrypt(const std::vector<std::vector<Ciphertext>> &enc_x)
+    {
+        Plaintext plain;
+        uint32_t i, j, k, size = enc_x.size();
+        uint32_t output_dim = enc_x[0].size();
+        uint32_t num_feat_per_ctxt = uint32_t(poly_modulus_degree / 2 / this->slot_per_feat);
+        std::vector<std::vector<double>> result(size * num_feat_per_ctxt, std::vector<double>(output_dim));
+        std::vector<double> decrypted;
+        // #pragma omp parallel for private(plain, decrypted)
+        for (i = 0; i < size; i++) // which ctxt is decryopted
+        {
+            for (j = 0; j < output_dim; j++)
+            {
+                decrypted = this->decrypt(enc_x[i][j]);
+                for (k = 0; k < num_feat_per_ctxt; k++)
+                {
+                    // output_dim
+                    result[i * num_feat_per_ctxt + k][j] = decrypted[k * this->slot_per_feat];
+                }
+            }
+        }
+        return result;
+    }
+
     std::vector<Ciphertext> ClientSide::process(const std::vector<std::string> &input)
     {
-        return this->encrypt(ClientSide::preprocess(input));
+        return this->batch_encrypt(ClientSide::preprocess(input));
     }
 
     std::vector<std::vector<double>> ClientSide::postprocess(const std::vector<std::vector<Ciphertext>> &x)
     {
         uint32_t i, size = x.size();
-        std::vector<std::vector<double>> result(size);
-
-#pragma omp parallel for
-        for (i = 0; i < size; i++)
-        {
-            result[i] = this->decrypt(x[i]);
-        }
+        std::vector<std::vector<double>> result = this->batch_decrypt(x);
         return SoftmaxPostprocessor::process(result);
     }
 

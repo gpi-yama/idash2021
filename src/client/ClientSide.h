@@ -17,8 +17,9 @@ namespace capsuleGene
         std::shared_ptr<RelinKeys> relin_keys;
         std::shared_ptr<CKKSEncoder> encoder;
         double scale;
-        int ploy_modulus_degree;
+        int poly_modulus_degree;
         std::vector<int32_t> modulus_chain;
+        uint32_t slot_per_feat;
 
     private:
         /**
@@ -49,6 +50,14 @@ namespace capsuleGene
         Ciphertext encrypt(const std::vector<double> &input);
 
         /**
+         * @brief encrypt and pack feature into the same ctxt until slot_size
+         * 
+         * @param input : 2d vector
+         * @return std::vector<Ciphertext> 
+         */
+        std::vector<Ciphertext> batch_encrypt(const std::vector<std::vector<double>> &input);
+
+        /**
          * @brief preprocess
          * 
          * @param input vector of strings
@@ -71,6 +80,14 @@ namespace capsuleGene
          * @return std::vector<double>
          */
         std::vector<double> decrypt(const Ciphertext &x);
+
+        /**
+         * @brief batch decrypt
+         * 
+         * @param x 
+         * @return std::vector<double> 
+         */
+        std::vector<std::vector<double>> batch_decrypt(const std::vector<std::vector<Ciphertext>> &x);
 
         /**
          * @brief Construct a new Client Side object
