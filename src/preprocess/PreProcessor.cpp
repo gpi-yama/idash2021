@@ -91,31 +91,29 @@ namespace capsuleGene{
         }
     }
 
-    void Preprocessor::load_components(std::ifstream& ifs,Eigen::Matrix2f& m, int N_COMPONENTS, int X_COLUMN){
-        std::string row;
-	    int i = 0;
-    	for(i=0;i<N_COMPONENTS;i++){ 
-            getline(ifs,row);
-            std::vector<double> row_ = Preprocessor::split_to_float(row,' ');
-            for(int j=0;j<X_COLUMN;++j){
-                m(i,j) = row_[j];
+    void Preprocessor::load_components(std::string path, Eigen::Matrix2f& m){
+        std::vector<std::vector<double>> csv = IOUtils::read_csv(path);
+        int i, j, N = csv.size(), M = csv[0].size();
+        for(i = 0; i < N; i++){
+            for (j = 0; j < M; j++){
+                m(i, j) = csv[i][j];
             }
-    	}
+        }
     }
 
-    void Preprocessor::load_mean(std::ifstream& ifs,Eigen::VectorXf& m){
-        std::string elm;
-        for(int i=0;i<BATCH;i++){
-            ifs >> elm;
-            m(i)=std::stof(elm);
+    void Preprocessor::load_mean(std::string path, Eigen::VectorXf& m){
+        std::vector<double> csv = IOUtils::read_csv_vec(path);
+        int i, j, n = csv.size();
+        for(i = 0; i < n; i++){
+            m(i, j) = csv[i];
         }
     }
         
-    void Preprocessor::load_variance(std::ifstream& ifs,Eigen::VectorXf& m){
-        std::string elm;
-        for(int i=0;i<BATCH;i++){
-            ifs >> elm;
-            m(i)=std::sqrt(std::stof(elm));
+    void Preprocessor::load_variance(std::string path,Eigen::VectorXf& m){
+        std::vector<double> csv = IOUtils::read_csv_vec(path);
+        int i, j, n = csv.size();
+        for(i = 0; i < n; i++){
+            m(i, j) = std::sqrt(csv[i]);
         }
     }
 
@@ -149,10 +147,10 @@ namespace capsuleGene{
         }
     }
         
-    Preprocessor::Preprocessor(std::string path_pca_components, 
-                               std::string path_pca_mean, 
-                               std::string path_pca_variance, 
-                               std::string path_dictionary,
+    Preprocessor::Preprocessor(const std::string path_pca_components, 
+                               const std::string path_pca_mean, 
+                               const std::string path_pca_variance, 
+                               const std::string path_dictionary,
                                const int N_COMPONENTS,
                                const int X_COLUMN)
     {
@@ -165,13 +163,13 @@ namespace capsuleGene{
         std::multimap<std::string,std::vector<std::string>> dic = Preprocessor::load_dictionary("cols_from_python.txt");
 
         this->components.resize(N_COMPONENTS,X_COLUMN);
-        Preprocessor::load_components(ifs2,components,N_COMPONENTS,X_COLUMN);
+        Preprocessor::load_components(path_pca_components,components);
         
         this->mean.resize(X_COLUMN);
-        Preprocessor::load_mean(ifs3, mean);
+        Preprocessor::load_mean(path_pca_mean, mean);
         
         this->sqrt_variance.resize(N_COMPONENTS);
-        Preprocessor::load_variance(ifs4,sqrt_variance);
+        Preprocessor::load_variance(path_pca_variance,sqrt_variance);
 
     }
 

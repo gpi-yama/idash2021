@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include <fstream>
 #include <string>
@@ -17,7 +18,8 @@ namespace capsuleGene
 
 */
     public:
-        static std::vector<std::vector<double>> read_csv(const std::string file_path, const bool header = true, const bool index = true);
+        static std::vector<std::vector<double>> read_csv(const std::string file_path, const bool header = false, const bool index = false);
+        static std::vector<double> read_csv_vec(const std::string file_path);
         static std::vector<double> read_vector_npy(const std::string path);
         static std::vector<std::vector<double>> read_matrix_npy(const std::string path);
     };
