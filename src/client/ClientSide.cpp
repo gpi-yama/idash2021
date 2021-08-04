@@ -44,9 +44,9 @@ namespace capsuleGene
         this->relin_keys = std::make_shared<RelinKeys>(relin_keys);
     }
 
-    std::vector<std::vector<double>> ClientSide::preprocess(const std::vector<std::string> &input)
+    std::vector<std::vector<double>> ClientSide::preprocess(const std::string input_path)
     {
-        return DummyPreprocessor::process(input);
+        return this->preprocessor.process(input_path);
     }
 
     std::vector<Ciphertext> ClientSide::encrypt(const std::vector<std::vector<double>> &input)
@@ -131,13 +131,12 @@ namespace capsuleGene
 
     std::vector<std::vector<double>> ClientSide::batch_decrypt(const std::vector<std::vector<Ciphertext>> &enc_x)
     {
-        Plaintext plain;
         uint32_t i, j, k, size = enc_x.size();
         uint32_t output_dim = enc_x[0].size();
         uint32_t num_feat_per_ctxt = uint32_t(poly_modulus_degree / 2 / this->slot_per_feat);
         std::vector<std::vector<double>> result(size * num_feat_per_ctxt, std::vector<double>(output_dim));
         std::vector<double> decrypted;
-        // #pragma omp parallel for private(plain, decrypted)
+#pragma omp parallel for private(decrypted)
         for (i = 0; i < size; i++) // which ctxt is decryopted
         {
             for (j = 0; j < output_dim; j++)
@@ -153,9 +152,100 @@ namespace capsuleGene
         return result;
     }
 
-    std::vector<Ciphertext> ClientSide::process(const std::vector<std::string> &input)
+    Plaintext ClientSide::encode_as_coef(std::vector<double> x, CKKSEncoder &encoder, double scale){
+        Plaintext plain;
+        encoder.encode_as_coeff(x, scale, plain);
+        return plain;
+    }
+
+    std::vector<Ciphertext> ClientSide::encrypt_as_coef(std::vector<std::vector<double>> x, CKKSEncoder &encoder, Encryptor &encryptor, double scale){
+        uint32_t i;
+        uint32_t n = x.size();
+        Plaintext plain;
+        Ciphertext ctxt;
+        std::vector<Ciphertext> res(n);
+
+#pragma omp parallel for private(plain, ctxt)
+        for (i = 0; i < n; i++){
+            plain = ClientSide::encode_as_coef(x[i], encoder, scale);
+            encryptor.encrypt(plain, ctxt);
+            res[i] = ctxt;
+        }
+        return res;
+    }
+
+    std::vector<double> ClientSide::decode_as_coef(Plaintext x, CKKSEncoder &encoder, double scale){
+        std::vector<double> decoded;
+        encoder.decode_as_coeff(x, decoded);
+        return decoded;
+    }
+
+    std::vector<std::vector<double>> ClientSide::decrypt_as_coef(std::vector<Ciphertext>  xs, CKKSEncoder &encoder, Decryptor &decryptor, double scale, int n){
+        Plaintext plain;
+        std::vector<double> decoded;
+        std::vector<std::vector<double>> res(n);
+        uint32_t i;
+
+#pragma omp parallel for private(decoded, plain)
+        for (i = 0; i < n; i++)
+        {
+            decryptor.decrypt(xs[i], plain);
+            decoded = ClientSide::decode_as_coef(plain, encoder, scale);
+            res[i] = decoded;
+        }
+        return res;
+    }
+
+    std::vector<std::vector<double>> ClientSide::pack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n){
+        uint32_t bs = xs.size();
+        uint32_t dim = xs[0].size();
+        uint32_t i, j, k;
+        std::vector<std::vector<double>> res(n);
+        std::vector<double> vec(l * dim);
+
+#pragma omp parallel for
+        for (i = 0; i < n - 1; i++)
+        {
+            for (int j = 0; j < l; j++)
+            {
+                for (int k = 0; k < dim; k++)
+                {
+                    vec[j*dim + k] = xs[i][j * dim + k];
+                }
+            }
+            res[i] = vec;
+        }
+    }
+
+    std::vector<double> ClientSide::unpack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n, int dim, int bs){
+        std::vector<double> res;
+        for(int i=0; i<n-1; i++){
+            for(int j=0; j<l; j++){
+            res.push_back(xs[i][dim-1+dim*j]);
+            }
+        }
+        for(int j=0; j<ls; j++){
+            res.push_back(xs[n-1][dim-1+dim*j]);
+        }
+        return res;
+    }
+
+
+    std::vector<Ciphertext> ClientSide::process(const std::string input_path)
     {
-        return this->batch_encrypt(ClientSide::preprocess(input));
+        return this->batch_encrypt(ClientSide::preprocess(input_path));
+    }
+
+    std::vector<Ciphertext> ClientSide::process_as_coef(const std::string input_path){
+        std::vector<std::vector<double>> features = this->preprocess(input_path);
+
+        int bs = features.size();
+        int dim = features[0].size();
+        CoefParams coef_params(bs, dim, poly_modulus_degree);
+
+        std::vector<std::vector<double>> packed_vectors = ClientSide::pack_vector_for_coef(features, coef_params.l, coef_params.ls, coef_params.n);
+        std::vector<Ciphertext> ctxt_list = ClientSide::encrypt_as_coef(packed_vectors, *encoder.get(), *encryptor.get(), scale);
+        return ctxt_list;
     }
 
     std::vector<std::vector<double>> ClientSide::postprocess(const std::vector<std::vector<Ciphertext>> &x)
@@ -163,6 +253,13 @@ namespace capsuleGene
         uint32_t i, size = x.size();
         std::vector<std::vector<double>> result = this->batch_decrypt(x);
         return SoftmaxPostprocessor::process(result);
+    }
+
+    std::vector<std::vector<double>> ClientSide::postprocess_as_coef(const std::vector<Ciphertext> &x){
+        std::vector<std::vector<double>> decrypted_result = ClientSide::decrypt_as_coef(x, *encoder.get(), *decryptor.get(), scale, coef_params.n);
+        // std::vector<double> result = ClientSide::unpack_vector_for_coef(decrypted_result, coef_params.l, coef_params.ls, coef_params.n, coef_params.n, coef_params.bs);
+        // SoftmaxPostprocessor::process(result);
+        return decrypted_result;
     }
 
     std::shared_ptr<Evaluator> ClientSide::getEvaluator()
