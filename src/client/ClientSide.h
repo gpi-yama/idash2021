@@ -1,10 +1,33 @@
 #include "../common.h"
 #include "../preprocess/DummyPreprocessor.h"
 #include "../postprocess/SoftmaxPostprocessor.h"
-// #include "../preprocess/PreProcessor.h"
+#include "../preprocess/PreProcessor.h"
 
 namespace capsuleGene
 {
+    class CoefParams{
+        public:
+            int l;
+            int n;
+            int nt;
+            int ls;
+            int dim;
+            int bs;
+
+        public:
+            CoefParams(){};
+            CoefParams(int dim, int bs, int poly_modulus_degree){
+                this->bs = bs;
+                this->dim = dim;
+                l = std::min(poly_modulus_degree/2/2/dim, bs);
+                n = bs/l;
+                nt = bs%l;
+                if(nt!=0) n += 1; // n ctxts in total
+                ls = l;
+                if(nt!=0) ls = nt; // last ctxt has ls of x
+            }
+    };
+
     class ClientSide
     {
     private:
@@ -20,6 +43,8 @@ namespace capsuleGene
         int poly_modulus_degree;
         std::vector<int32_t> modulus_chain;
         uint32_t slot_per_feat;
+        CoefParams coef_params;
+        Preprocessor preprocessor;
 
     private:
         /**
@@ -31,6 +56,18 @@ namespace capsuleGene
          * @return EncryptionParameters 
          */
         static EncryptionParameters generateParameters(const double scale, const std::vector<int32_t> &modulus_chain, const int poly_modulus_degree);
+
+        static Plaintext encode_as_coef(std::vector<double> x, CKKSEncoder &encoder, double scale);
+
+        static std::vector<Ciphertext> encrypt_as_coef(std::vector<std::vector<double>> xs, CKKSEncoder &encoder, Encryptor &encryptor, double scale);
+
+        static std::vector<double> decode_as_coef(Plaintext x, CKKSEncoder &encoder, double scale);
+
+        static std::vector<std::vector<double>> decrypt_as_coef(std::vector<Ciphertext>  xs, CKKSEncoder &encoder, Decryptor &decryptor, double scale, int n);
+
+        static std::vector<std::vector<double>> pack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n);
+
+        static std::vector<double> unpack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n, int dim, int bs);
 
     public:
         /**
@@ -63,7 +100,7 @@ namespace capsuleGene
          * @param input vector of strings
          * @return std::vector<std::vector<double>> 
          */
-        static std::vector<std::vector<double>> preprocess(const std::vector<std::string> &input);
+        std::vector<std::vector<double>> preprocess(const std::string input_path);
 
         /**
          * @brief decrypt ciphertext vector
@@ -106,12 +143,28 @@ namespace capsuleGene
         /**
          * @brief Client side preprocessing
          * 
-         * @param input batched input vector
+         * @param input path
          * @return std::vector<Ciphertext> 
          */
-        std::vector<Ciphertext> process(const std::vector<std::string> &input);
+        std::vector<Ciphertext> process(const std::string input_path);
+
+        /**
+         * @brief Client side preprocessing with coef encoding
+         * 
+         * @param input_path
+         * @return std::vector<Ciphertext> 
+         */
+        std::vector<Ciphertext> process_as_coef(const std::string input_path);
 
         std::vector<std::vector<double>> postprocess(const std::vector<std::vector<Ciphertext>> &x);
+
+        /**
+         * @brief  Client side postprocessing with coef encoding
+         * 
+         * @param x 
+         * @return std::vector<std::vector<double>> 
+         */
+        std::vector<std::vector<double>> postprocess_as_coef(const std::vector<Ciphertext> &x);
 
         // Getter
         std::shared_ptr<Evaluator> getEvaluator();
