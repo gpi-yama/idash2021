@@ -8,8 +8,15 @@ namespace capsuleGene
         this->ml = ml;
     }
 
+    ServerSide::ServerSide(const CoefLogisticRegression &ml)
+    {
+        this->use_coef = true;
+        this->ml_coef = ml;
+    }
+
     std::vector<std::vector<Ciphertext>> ServerSide::process(const std::vector<Ciphertext> &x)
     {
+        if (this->use_coef) return this->ml_coef.predict(x);
         return this->ml.predict(x);
     }
 
