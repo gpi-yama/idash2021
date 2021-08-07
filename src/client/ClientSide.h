@@ -132,6 +132,15 @@ namespace capsuleGene
         ClientSide(){};
 
         /**
+         * @brief Construct a new Client Side object with setting preprocessor
+         * 
+         * @param preprocessor 
+         */
+        ClientSide(Preprocessor preprocessor){
+            this->preprocessor = preprocessor;
+        };
+
+        /**
          * @brief generate keys and evaluators and set as private variables
          * 
          * @param scale 

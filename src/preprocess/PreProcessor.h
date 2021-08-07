@@ -12,6 +12,7 @@
 #include <iterator>
 #include <string>
 #include <cmath>
+#include "../utils/IOUtils.h"
 
 
 #define EIGEN_NO_DEBUG 
@@ -92,7 +93,7 @@ namespace capsuleGene
          * @param ifs 
          * @param m 
          */
-        static void load_components(std::ifstream& ifs,Eigen::Matrix2f& m, int N_COMPONENTS, int X_COLUMN);
+        static void load_components(std::string path, Eigen::Matrix2f& m);
         
         /**
          * @brief load PCA means
@@ -100,7 +101,7 @@ namespace capsuleGene
          * @param ifs 
          * @param m 
          */
-        static void load_mean(std::ifstream& ifs,Eigen::VectorXf& m);
+        static void load_mean(std::string path, Eigen::VectorXf& m);
 
         /**
          * @brief load pca variance
@@ -108,7 +109,7 @@ namespace capsuleGene
          * @param ifs 
          * @param m 
          */
-        static void load_variance(std::ifstream& ifs,Eigen::VectorXf& m);
+        static void load_variance(std::string path, Eigen::VectorXf& m);
 
 
         static void multilabel_binalize(std::vector<std::vector<bool>>& buf,std::vector<std::string>& seqs,std::multimap<std::string,std::vector<std::string>>& dic);
@@ -118,10 +119,10 @@ namespace capsuleGene
 
     public:
         Preprocessor(){};
-        Preprocessor(std::string path_pca_components, 
-                     std::string path_pca_mean, 
-                     std::string path_pca_variance, 
-                     std::string path_dictionary,
+        Preprocessor(const std::string path_pca_components, 
+                     const std::string path_pca_mean, 
+                     const std::string path_pca_variance, 
+                     const std::string path_dictionary,
                      const int N_COMPONENTS,
                      const int X_COLUMN);
 

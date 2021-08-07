@@ -104,12 +104,19 @@ int main_coef(){
     // ----------- input ----------
     const std::vector<std::string> input(100, "TEST");
     const std::string path = "/home/yamaguchi/idash2021/dataset/Challange.a";
+    const std::string path_of_components = "/home/yamaguchi/idash2021/data/pca_200_components.csv";
+    const std::string path_of_mean = "/home/yamaguchi/idash2021/data/pca_200_mean.csv";
+    const std::string path_of_variance = "/home/yamaguchi/idash2021/data/pca_200_variance.csv";
+    const std::string path_of_dictionary = "/home/yamaguchi/idash2021/data/dictionary.txt";
+    
+    
     const int input_dim = 100;
     const int output_dim = 800;
+    const int dim_of_raw = 30000;
     // ----------------------------
 
     start1 = std::chrono::system_clock::now();
-
+    Preprocessor preprocessor(path_of_components, path_of_mean, path_of_variance, path_of_dictionary, input_dim, dim_of_raw);
     ClientSide client;
     client.generate_keys(scale, modulus, poly_modulus_degree);
     const std::vector<Ciphertext> enc_input = client.process(path);

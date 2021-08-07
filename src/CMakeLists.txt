@@ -6,7 +6,8 @@ project(SEALExamples VERSION 3.6.2 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 # Import Microsoft SEAL
-find_package(SEAL 3.6.2 EXACT REQUIRED)
+find_package(SEAL 3.6.5 EXACT REQUIRED)
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
@@ -20,10 +21,13 @@ target_sources(sealexamples
         client/ClientSide.cpp
         postprocess/SoftmaxPostprocessor.cpp
         preprocess/DummyPreprocessor.cpp
+        preprocess/PreProcessor.cpp
         utils/IOUtils.cpp
         utils/mathUtils.cpp
         ml/algebra.cpp
         ml/LogisticRegression.cpp
+        ml/CoefLogisticRegression.cpp
 )
 
-target_link_libraries(sealexamples PRIVATE SEAL::seal)
+target_link_libraries(sealexamples PRIVATE SEAL::seal
+                    Eigen3::Eigen)
