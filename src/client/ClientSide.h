@@ -1,5 +1,4 @@
 #include "../common.h"
-#include "../preprocess/DummyPreprocessor.h"
 #include "../postprocess/SoftmaxPostprocessor.h"
 #include "../preprocess/PreProcessor.h"
 
@@ -44,7 +43,7 @@ namespace capsuleGene
         std::vector<int32_t> modulus_chain;
         uint32_t slot_per_feat;
         CoefParams coef_params;
-        Preprocessor preprocessor;
+        std::shared_ptr<Preprocessor> preprocessor;
 
     private:
         /**
@@ -65,9 +64,9 @@ namespace capsuleGene
 
         static std::vector<std::vector<double>> decrypt_as_coef(std::vector<Ciphertext>  xs, CKKSEncoder &encoder, Decryptor &decryptor, double scale, int n);
 
-        static std::vector<std::vector<double>> pack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n);
+        static std::vector<std::vector<double>> pack_vector_for_coef(std::vector<std::vector<float>> &xs, int l, int ls, int n);
 
-        static std::vector<double> unpack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n, int dim, int bs);
+        static std::vector<double> unpack_vector_for_coef(std::vector<std::vector<double>> &xs, int l, int ls, int n, int dim, int bs);
 
     public:
         /**
@@ -92,7 +91,7 @@ namespace capsuleGene
          * @param input : 2d vector
          * @return std::vector<Ciphertext> 
          */
-        std::vector<Ciphertext> batch_encrypt(const std::vector<std::vector<double>> &input);
+        std::vector<Ciphertext> batch_encrypt(const std::vector<std::vector<float>> &input);
 
         /**
          * @brief preprocess
@@ -100,7 +99,7 @@ namespace capsuleGene
          * @param input vector of strings
          * @return std::vector<std::vector<double>> 
          */
-        std::vector<std::vector<double>> preprocess(const std::string input_path);
+        std::vector<std::vector<float>> preprocess(const std::string input_path);
 
         /**
          * @brief decrypt ciphertext vector
@@ -136,7 +135,7 @@ namespace capsuleGene
          * 
          * @param preprocessor 
          */
-        ClientSide(Preprocessor preprocessor){
+        ClientSide(std::shared_ptr<Preprocessor> preprocessor){
             this->preprocessor = preprocessor;
         };
 

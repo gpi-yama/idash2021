@@ -44,9 +44,16 @@ namespace capsuleGene
         this->relin_keys = std::make_shared<RelinKeys>(relin_keys);
     }
 
-    std::vector<std::vector<double>> ClientSide::preprocess(const std::string input_path)
+    std::vector<std::vector<float>> ClientSide::preprocess(const std::string input_path)
     {
-        return this->preprocessor.process(input_path);
+        std::vector<std::vector<float>> feat = this->preprocessor->process(input_path);
+        for (int i = 0; i < 10; i++){
+            for (int j = 0; j < 5; j++){
+                std::cout << feat[i][j] << ",";
+            }
+            std::cout << std::endl;
+        }
+        return feat;
     }
 
     std::vector<Ciphertext> ClientSide::encrypt(const std::vector<std::vector<double>> &input)
@@ -72,7 +79,7 @@ namespace capsuleGene
         return ctxt;
     }
 
-    std::vector<Ciphertext> ClientSide::batch_encrypt(const std::vector<std::vector<double>> &input)
+    std::vector<Ciphertext> ClientSide::batch_encrypt(const std::vector<std::vector<float>> &input)
     {
         Plaintext plain;
         Ciphertext ctxt;
@@ -131,17 +138,21 @@ namespace capsuleGene
 
     std::vector<std::vector<double>> ClientSide::batch_decrypt(const std::vector<std::vector<Ciphertext>> &enc_x)
     {
+        std::cout << "dec" << std::endl;
         uint32_t i, j, k, size = enc_x.size();
         uint32_t output_dim = enc_x[0].size();
         uint32_t num_feat_per_ctxt = uint32_t(poly_modulus_degree / 2 / this->slot_per_feat);
         std::vector<std::vector<double>> result(size * num_feat_per_ctxt, std::vector<double>(output_dim));
+        Plaintext plain;
         std::vector<double> decrypted;
-#pragma omp parallel for private(decrypted)
+#pragma omp parallel for private(decrypted, plain, i, j, k)
         for (i = 0; i < size; i++) // which ctxt is decryopted
         {
             for (j = 0; j < output_dim; j++)
             {
-                decrypted = this->decrypt(enc_x[i][j]);
+                // decrypted = this->decrypt(enc_x[i][j]);
+                this->decryptor->decrypt(enc_x[i][j], plain);
+                this->encoder->decode(plain, decrypted);
                 for (k = 0; k < num_feat_per_ctxt; k++)
                 {
                     // output_dim
@@ -149,6 +160,7 @@ namespace capsuleGene
                 }
             }
         }
+        std::cout << "ok" << std::endl;
         return result;
     }
 
@@ -196,7 +208,7 @@ namespace capsuleGene
         return res;
     }
 
-    std::vector<std::vector<double>> ClientSide::pack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n){
+    std::vector<std::vector<double>> ClientSide::pack_vector_for_coef(std::vector<std::vector<float>> &xs, int l, int ls, int n){
         uint32_t bs = xs.size();
         uint32_t dim = xs[0].size();
         uint32_t i, j, k;
@@ -210,14 +222,14 @@ namespace capsuleGene
             {
                 for (int k = 0; k < dim; k++)
                 {
-                    vec[j*dim + k] = xs[i][j * dim + k];
+                    vec[j*dim + k] = xs[i*l + j][k];
                 }
             }
             res[i] = vec;
         }
     }
 
-    std::vector<double> ClientSide::unpack_vector_for_coef(std::vector<std::vector<double>> xs, int l, int ls, int n, int dim, int bs){
+    std::vector<double> ClientSide::unpack_vector_for_coef(std::vector<std::vector<double>> &xs, int l, int ls, int n, int dim, int bs){
         std::vector<double> res;
         for(int i=0; i<n-1; i++){
             for(int j=0; j<l; j++){
@@ -237,7 +249,7 @@ namespace capsuleGene
     }
 
     std::vector<Ciphertext> ClientSide::process_as_coef(const std::string input_path){
-        std::vector<std::vector<double>> features = this->preprocess(input_path);
+        std::vector<std::vector<float>> features = this->preprocess(input_path);
 
         int bs = features.size();
         int dim = features[0].size();
@@ -252,6 +264,7 @@ namespace capsuleGene
     {
         uint32_t i, size = x.size();
         std::vector<std::vector<double>> result = this->batch_decrypt(x);
+        std::cout << "softmax" << std::endl;
         return SoftmaxPostprocessor::process(result);
     }
 
