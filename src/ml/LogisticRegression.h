@@ -27,7 +27,7 @@ namespace capsuleGene
         std::vector<std::vector<Ciphertext>> predict(const std::vector<Ciphertext> &x);
 
         // setter
-        void set_bias(const std::vector<std::vector<double>> bias);
-        void set_weight(const std::vector<std::vector<double>> weight);
+        void set_bias(const std::vector<float> bias);
+        void set_weight(const std::vector<float> weight);
     };
 }

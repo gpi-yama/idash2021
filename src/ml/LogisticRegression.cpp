@@ -21,6 +21,7 @@ namespace capsuleGene
         uint32_t i, j, size = x.size();
         std::vector<std::vector<Ciphertext>> result(size, std::vector<Ciphertext>(this->output_dim));
         Ciphertext tmp;
+        std::cout << "pred" << std::endl;
 #pragma omp parallel for private(i, j, tmp)
         for (i = 0; i < size; i++)
         {
@@ -36,7 +37,7 @@ namespace capsuleGene
         return result;
     };
 
-    void LogisticRegression::set_bias(std::vector<std::vector<double>> bias)
+    void LogisticRegression::set_bias(std::vector<float> bias)
     {
         uint32_t i, j, k;
         uint32_t slot_per_feat = pow(2, int(log2(input_dim) + 1));
@@ -46,12 +47,12 @@ namespace capsuleGene
         {
             for (j = 0; j < int(slot_size / 2 / slot_per_feat); j++)
             {
-                this->bias[i][j * slot_per_feat] = bias[i][0];
+                this->bias[i][j * slot_per_feat] = bias[i];
             }
         }
     };
 
-    void LogisticRegression::set_weight(std::vector<std::vector<double>> weight)
+    void LogisticRegression::set_weight(std::vector<float> weight)
     {
         uint32_t i, j, k;
         uint32_t slot_per_feat = pow(2, int(log2(input_dim) + 1));
@@ -63,7 +64,7 @@ namespace capsuleGene
             {
                 for (k = 0; k < input_dim; k++)
                 {
-                    this->weight[i][k + j * slot_per_feat] = weight[i][k];
+                    this->weight[i][k + j * slot_per_feat] = weight[i*input_dim + k];
                 }
             }
         }
