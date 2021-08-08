@@ -20,7 +20,10 @@ namespace capsuleGene
         int slot_size;
 
         static Plaintext encode_w(const std::vector<double> &w, CKKSEncoder &encoder, const double scale);
+        
         static std::vector<Ciphertext> mult_xs_w(const std::vector<Ciphertext> &xs, const Plaintext &w, const Evaluator &evaluator, const RelinKeys &relin_keys);
+        
+        static std::vector<Ciphertext> add_xs_b(std::vector<Ciphertext> xs, Plaintext b, Evaluator &evaluator, RelinKeys relin_keys);
 
     public:
         CoefLogisticRegression(){};

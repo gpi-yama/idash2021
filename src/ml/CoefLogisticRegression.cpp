@@ -37,19 +37,38 @@ namespace capsuleGene
         return res;
     }
 
+    std::vector<Ciphertext> CoefLogisticRegression::add_xs_b(std::vector<Ciphertext> xs, Plaintext b, Evaluator &evaluator, RelinKeys relin_keys){
+        std::vector<Ciphertext> res;
+        int n = xs.size();
+        for(int i=0; i<n; i++){
+            Ciphertext tmp;
+
+            int scale_n = int(round(log2(xs[i].scale())));
+            b.scale() = pow(2.0, scale_n);
+
+            evaluator.add_plain(xs[i], b, tmp);
+            res.push_back(tmp);
+        }
+        return res;
+    }
+
     std::vector<std::vector<Ciphertext>> CoefLogisticRegression::predict(const std::vector<Ciphertext> &x)
     {
         uint32_t i, j, k, size = x.size();
         std::vector<std::vector<Ciphertext>> result(size, std::vector<Ciphertext>(this->output_dim));
         std::vector<Ciphertext> tmp;
 
+        std::vector<Plaintext> bias_coef(this->output_dim);
+        for (i = 0; i < this->output_dim; i++){
+            encoder.get()->encode_as_coeff(bias[i], this->scale, bias_coef[i]);
+        }
+        
+
 #pragma omp parallel for
         for (j = 0; j < this->output_dim; j++)
         {
             result[j] = CoefLogisticRegression::mult_xs_w(x, this->encoded_weight[j], *this->evaluator.get(), *this->rel_keys.get());
-            for (k = 0; k < result[j].size(); k++){
-                result[j][k] = AlgebraUtils::add(result[j][k], this->bias[j], evaluator, encoder);
-            }
+            result[j] = CoefLogisticRegression::add_xs_b(result[j], bias_coef[j], *evaluator.get(), *rel_keys.get());
         }
         return result;
     };
