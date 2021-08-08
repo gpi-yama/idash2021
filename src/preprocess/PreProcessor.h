@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstring>
 #include <set>
+#include <unordered_map>
 #include <map>
 #include <numeric>
 #include <random>
@@ -12,43 +13,90 @@
 #include <iterator>
 #include <string>
 #include <cmath>
+#include <memory>
 #include "../utils/IOUtils.h"
-
-
-#define EIGEN_NO_DEBUG 
-#define EIGEN_DONT_VECTORIZE
-#define EIGEN_DONT_PARALLELIZE
-#define EIGEN_MPL2_ONLY 
-#include <Eigen/Core>
-#include <Eigen/LU>
-
-
-constexpr unsigned int DATASET = 8000;
-constexpr unsigned int BATCH = DATASET;
-constexpr unsigned int X_COLUMN = 141157;
-constexpr unsigned int Y_COLUMN = 4;
-
-constexpr unsigned int N_COMPONENTS = 200;
-constexpr unsigned int K = 1;
-
-constexpr double P = 0.1;
-constexpr unsigned int TRAIN_SIZE = BATCH*(1-P);
-constexpr unsigned int MAX_SEQ = 30000;
+#include "../constants.h"
 
 const std::string DATA_PATH = "Data/Challenge.fa";
 const std::string BASIS_PATH = "Challenge/basis.csv";
 
+#include <cassert>
+
 namespace capsuleGene
 {
+
+    static const std::string rnaChar = "ACGTRYSWKMBDHVNO";
+
     class Preprocessor
     {
     private:
         std::multimap<std::string,std::vector<std::string>> dic;
-        Eigen::Matrix2f components;
-        Eigen::VectorXf mean;
-        Eigen::VectorXf sqrt_variance;
-        int N_COMPONENTS;
-        int X_COLUMN;
+        std::vector<float> components;
+        std::vector<float> mean;
+        std::vector<float> sqrt_variance;
+
+
+        std::unordered_map<char, int> rnaMap{
+        //     A      C      G      T
+        {'A', 0},
+        {'C', 1},
+        {'G', 2},
+        {'T', 3},
+        {'R', 4},   // A or G
+        {'Y', 5}, // C or T
+        {'S', 6},  // G or C
+        {'W', 7},  // A or T
+        {'K', 8},  // G or T
+        {'M', 9},  // A or C
+        {'B', 10},  // C or G or T
+        {'D', 11},  // A or G or T
+        {'H', 12},  // A or C or T
+        {'V', 13},  // A or C or G
+        {'N', 14},  // any base
+        {'O', 15},  // NONE
+        };
+
+
+        // std::unordered_map<char, std::array<float, 4>> rnaMap{
+        // //     A      C      G      T
+        // {'A', {1.f,   0.f,   0.f,   0.f}},
+        // {'C', {0.f,   1.f,   0.f,   0.f}},
+        // {'G', {0.f,   0.f,   1.f,   0.f}},
+        // {'T', {0.f,   0.f,   0.f,   1.f}},
+        // {'R', {0.5f,  0.f,   0.5f,  0.f}},   // A or G
+        // {'Y', {0.f,   0.5f,  0.f,   0.5f}}, // C or T
+        // {'S', {0.f,   0.5f,  0.5f,  0.f}},  // G or C
+        // {'W', {0.5f,  0.f,   0.f,   0.5f}},  // A or T
+        // {'K', {0.f,   0.f,   0.5f,  0.5f}},  // G or T
+        // {'M', {0.5f,  0.5f,  0.f,   0.f}},  // A or C
+        // {'B', {0.f,   0.33f, 0.33f, 0.33f}},  // C or G or T
+        // {'D', {0.33f, 0.f,   0.33f, 0.33f}},  // A or G or T
+        // {'H', {0.33f, 0.33f, 0.f,   0.33f}},  // A or C or T
+        // {'V', {0.33f, 0.33f, 0.33f, 0.f}},  // A or C or G
+        // {'N', {0.25f, 0.25f, 0.25f, 0.25f}},  // any base
+        // {'O', {0.f,   0.f,   0.f,   0.f}},  // NONE
+        // };
+
+        // std::unordered_map<char, std::array<float, 4>> rnaMap{
+        // //     A    C    G    T
+        // {'A', {1,   0,   0,   0}},
+        // {'C', {0,   1,   0,   0}},
+        // {'G', {0,   0,   1,   0}},
+        // {'T', {0,   0,   0,   1}},
+        // {'R', {1, 0,   1, 0}},   // A or G
+        // {'Y', {0,   1, 0,   1}}, // C or T
+        // {'S', {0,   1, 1, 0}},  // G or C
+        // {'W', {1, 0,   0,   1}},  // A or T
+        // {'K', {0,   0,   1, 1}},  // G or T
+        // {'M', {1, 1, 0,   0}},  // A or C
+        // {'B', {0,   1,1,1}},  // C or G or T
+        // {'D', {1,0,   1,1}},  // A or G or T
+        // {'H', {1,1,0,   1}},  // A or C or T
+        // {'V', {1,1,1,0}},  // A or C or G
+        // {'N', {1,1,1,1}},  // any base
+        // {'O', {0.,  0.,  0.  ,0.}},  // NONE
+        // };
+
 
     private:
 
@@ -85,7 +133,7 @@ namespace capsuleGene
          * @param sequences 
          * @param labels 
          */
-        static void load_seq(std::ifstream& ifs,std::vector<std::string>& sequences,std::vector<std::string>& labels);
+        static void load_seq(const std::string path, std::vector<std::string>& sequences);
 
         /**
          * @brief load PCA components
@@ -93,7 +141,7 @@ namespace capsuleGene
          * @param ifs 
          * @param m 
          */
-        static void load_components(std::string path, Eigen::Matrix2f& m);
+        static void load_components(std::string path, std::vector<float> &out);
         
         /**
          * @brief load PCA means
@@ -101,7 +149,7 @@ namespace capsuleGene
          * @param ifs 
          * @param m 
          */
-        static void load_mean(std::string path, Eigen::VectorXf& m);
+        static void load_mean(std::string path, std::vector<float> &out);
 
         /**
          * @brief load pca variance
@@ -109,23 +157,31 @@ namespace capsuleGene
          * @param ifs 
          * @param m 
          */
-        static void load_variance(std::string path, Eigen::VectorXf& m);
+        static void load_variance(std::string path, std::vector<float> &out);
 
+        static void multilabel_binarize(std::vector<std::vector<float>>& buf,std::vector<std::string>& seqs,std::multimap<std::string,std::vector<std::string>>& dic);
 
-        static void multilabel_binalize(std::vector<std::vector<bool>>& buf,std::vector<std::string>& seqs,std::multimap<std::string,std::vector<std::string>>& dic);
-        
-        static void onehot_encode(std::array<std::array<bool,Y_COLUMN>,BATCH>& buf,std::vector<std::string>& words);
+        void binarize_by_existance(std::vector<std::vector<float>>& buf, std::vector<std::string>& seqs, std::unordered_map<char, int> rnaMap, const uint32_t batch_size);
 
+        static std::vector<float> dot(std::vector<float> &x, std::vector<std::vector<float>> &m);
+
+        static std::vector<std::vector<float>> batch_dot(std::vector<std::vector<float>> &x, std::vector<std::vector<float>> &m);
 
     public:
-        Preprocessor(){};
+        Preprocessor(){
+            // delete mean;
+            // delete sqrt_variance;
+            // delete components;
+        };
         Preprocessor(const std::string path_pca_components, 
                      const std::string path_pca_mean, 
                      const std::string path_pca_variance, 
-                     const std::string path_dictionary,
-                     const int N_COMPONENTS,
-                     const int X_COLUMN);
+                     const std::string path_dictionary);
 
-        std::vector<std::vector<double>> process(const std::string data_path);
+        std::vector<std::vector<float>> process(const std::string data_path);
+
+        void load_and_binarize(const std::string data_path, std::vector<std::vector<float>> &X);
+
+        void pca(std::array<float, X_COLUMN> &X, std::vector<float> &out);
     };
 }
