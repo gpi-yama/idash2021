@@ -4,7 +4,7 @@ import pickle
 from sklearn.decomposition import PCA
 
 
-def feature_preprocess(comp_dim=200, data_dir="data"):
+def feature_preprocess(comp_dim=5, data_dir="data"):
   executor = PCA(n_components=comp_dim)
   data_file_name = f"{data_dir}/pca_{comp_dim}.pkl"
 
@@ -22,10 +22,13 @@ def feature_preprocess(comp_dim=200, data_dir="data"):
   with open(data_file_name, "wb") as f:
     pickle.dump(executor, f)
   
-  np.savetxt(f'{data_dir}/pca_{comp_dim}_mean.csv', executor.mean_)
-  np.savetxt(f'{data_dir}/pca_{comp_dim}_components.csv', executor.components_)
-  np.savetxt(f'{data_dir}/pca_{comp_dim}_variance.csv', executor.explained_variance_)
+  #np.savetxt(f'{data_dir}/pca_{comp_dim}_mean.csv', executor.mean_)
+  #np.savetxt(f'{data_dir}/pca_{comp_dim}_components.csv', executor.components_)
+  #np.savetxt(f'{data_dir}/pca_{comp_dim}_variance.csv', executor.explained_variance_)
 
+  np.save(f'{data_dir}/pca_{comp_dim}_mean.npy', executor.mean_.astype("float32"))
+  np.save(f'{data_dir}/pca_{comp_dim}_components.npy', executor.components_.astype("float32"))
+  np.save(f'{data_dir}/pca_{comp_dim}_variance.npy', executor.explained_variance_.astype("float32"))
   return X, y
 
 if __name__ == "__main__":
