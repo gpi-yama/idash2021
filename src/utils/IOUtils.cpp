@@ -167,7 +167,13 @@ namespace capsuleGene
     void IOUtils::read_vector_npy(const std::string path, std::vector<float> &out){
         std::vector<unsigned long> shape;
         bool fortran_order;
-        std::vector<double> data;
+        npy::LoadArrayFromNumpy(path, shape, fortran_order, out);
+    }
+
+
+    void IOUtils::read_vector_npy(const std::string path, std::vector<int> &out){
+        std::vector<unsigned long> shape;
+        bool fortran_order;
         npy::LoadArrayFromNumpy(path, shape, fortran_order, out);
     }
 

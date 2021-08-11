@@ -29,7 +29,7 @@ namespace capsuleGene
             {
                 tmp = AlgebraUtils::multiply(x[i], this->weight[j], this->evaluator, this->rel_keys, this->encoder, this->scale);
                 tmp = AlgebraUtils::rotate_and_sum_in_col(tmp, this->input_dim, this->evaluator, this->gal_keys);
-                tmp = AlgebraUtils::add(tmp, bias[j], this->evaluator, this->encoder);
+                // tmp = AlgebraUtils::add(tmp, bias[j], this->evaluator, this->encoder);
                 result[i][j] = tmp;
             }
         }
@@ -37,7 +37,7 @@ namespace capsuleGene
         return result;
     };
 
-    void LogisticRegression::set_bias(std::vector<float> bias)
+    void LogisticRegression::set_bias(const std::vector<float> &bias)
     {
         uint32_t i, j, k;
         uint32_t slot_per_feat = pow(2, int(log2(input_dim) + 1));
@@ -52,7 +52,7 @@ namespace capsuleGene
         }
     };
 
-    void LogisticRegression::set_weight(std::vector<float> weight)
+    void LogisticRegression::set_weight(const std::vector<float> &weight)
     {
         uint32_t i, j, k;
         uint32_t slot_per_feat = pow(2, int(log2(input_dim) + 1));
