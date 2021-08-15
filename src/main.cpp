@@ -2,9 +2,9 @@
 #include "common.h"
 #include "server/ServerSide.h"
 #include "client/ClientSide.h"
-#include "preprocess/DummyPreprocessor.h"
 
 using namespace capsuleGene;
+
 
 int main_batch()
 {
@@ -13,9 +13,9 @@ int main_batch()
     start = std::chrono::system_clock::now();
 
     // ----------- define parameters -------------
-    const double scale = pow(2.0, 25);
+    const double scale = pow(2.0, 30);
     const int poly_modulus_degree = 4096;
-    const std::vector<int32_t> modulus = {30, 25, 30};
+    const std::vector<int32_t> modulus = {38, 30, 38};
     // -----------------------------------------
 
     // if you want to know 128bit max coefs please use this.
@@ -24,14 +24,20 @@ int main_batch()
 
     // ----------- input ----------
     // const std::vector<std::string> input(100, "TEST");
-    const std::string path = "/home/yamaguchi/idash2021/dataset/Challange.a";
-    const int input_dim = 10;
-    const int output_dim = 4;
+    const std::string path = "/home/yamaguchi/idash2021/dataset/Challenge_test.fa";
+    const std::string data_path = "/home/yamaguchi/idash2021/data/";
+    const int input_dim = N_COMPONENTS;
+    const int output_dim = Y_COLUMN;
     // ----------------------------
+    std::string path_pca_components = data_path + "pca_" + std::to_string(input_dim) + "_components.npy";
+    std::string path_pca_variance = data_path + "pca_" + std::to_string(input_dim) + "_variance.npy";
+    std::string path_pca_mean = data_path + "pca_" + std::to_string(input_dim) + "_mean.npy";
+    std::string usable_index = "hoge";
 
     start1 = std::chrono::system_clock::now();
+    std::shared_ptr<Preprocessor> preprocessor = std::make_shared<Preprocessor>(path_pca_components, path_pca_mean, path_pca_variance, usable_index);
 
-    ClientSide client;
+    ClientSide client(preprocessor);
     client.generate_keys(scale, modulus, poly_modulus_degree);
     const std::vector<Ciphertext> enc_input = client.process(path);
 
@@ -44,8 +50,10 @@ int main_batch()
     start1 = std::chrono::system_clock::now();
 
     ServerSide server(ml);
-    server.load_weight("/home/yamaguchi/idash2021/coef.csv");
-    server.load_bias("/home/yamaguchi/idash2021/bias.csv");
+    std::cout << "load_weight" << std::endl;
+    server.load_weight("/home/yamaguchi/idash2021/data/coef_" + std::to_string(input_dim) + ".npy");
+    server.load_bias("/home/yamaguchi/idash2021/data/bias_" + std::to_string(input_dim) + ".npy");
+    std::cout << "proess" << std::endl;
     const std::vector<std::vector<Ciphertext>> enc_result = server.process(enc_input);
 
     end1 = std::chrono::system_clock::now();
@@ -61,7 +69,7 @@ int main_batch()
     std::cout << "client post process time: " << elapsed << std::endl;
 
     // calculate accuracy
-    std::vector<std::vector<double>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/out_tests.csv", false, false);
+    std::vector<std::vector<float>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/dataset/test_answer.txt", false, false);
     int max, i;
     int N = ans.size();
     float acc = 0.0;
@@ -70,11 +78,11 @@ int main_batch()
     {
         max = distance(result[i].begin(), std::max_element(result[i].begin(), result[i].end()));
         acc += int(max == int(ans[i][0]));
-        // for (auto v : result[i])
-        // {
-        // std::cout << v << ", ";
-        // }
-        // std::cout << i << "," << max << ", " << ans[i][0] << std::endl;
+        for (auto v : result[i])
+        {
+        std::cout << v << ", ";
+        }
+        std::cout << i << "," << max << ", ans:" << ans[i][0] << std::endl;
     }
 
     std::cout << "ACC: " << acc / N << std::endl;
@@ -92,9 +100,9 @@ int main_coef(){
     start = std::chrono::system_clock::now();
 
     // ----------- define parameters -------------
-    const double scale = pow(2.0, 25);
-    const int poly_modulus_degree = 4096;
-    const std::vector<int32_t> modulus = {30, 25, 30};
+    const double scale = pow(2.0, 40);
+    const int poly_modulus_degree = 8192;
+    const std::vector<int32_t> modulus = {60, 40, 60};
     // -----------------------------------------
 
     // if you want to know 128bit max coefs please use this.
@@ -102,24 +110,22 @@ int main_coef(){
     // std::cout << a << std::endl;
 
     // ----------- input ----------
-    const std::vector<std::string> input(100, "TEST");
-    const std::string path = "/home/yamaguchi/idash2021/dataset/Challange.a";
-    const std::string path_of_components = "/home/yamaguchi/idash2021/data/pca_200_components.csv";
-    const std::string path_of_mean = "/home/yamaguchi/idash2021/data/pca_200_mean.csv";
-    const std::string path_of_variance = "/home/yamaguchi/idash2021/data/pca_200_variance.csv";
-    const std::string path_of_dictionary = "/home/yamaguchi/idash2021/data/dictionary.txt";
-    
-    
-    const int input_dim = 100;
-    const int output_dim = 800;
-    const int dim_of_raw = 30000;
+    const std::string path = "/home/yamaguchi/idash2021/dataset/Challenge_test.fa";
+    const std::string data_path = "/home/yamaguchi/idash2021/data/";
+    const int input_dim = N_COMPONENTS;
+    const int output_dim = Y_COLUMN;
+    // ----------------------------
+    std::string path_pca_components = data_path + "pca_" + std::to_string(input_dim) + "_components.npy";
+    std::string path_pca_variance = data_path + "pca_" + std::to_string(input_dim) + "_variance.npy";
+    std::string path_pca_mean = data_path + "pca_" + std::to_string(input_dim) + "_mean.npy";
+    std::string usable_index = "hoge";
     // ----------------------------
 
     start1 = std::chrono::system_clock::now();
-    Preprocessor preprocessor(path_of_components, path_of_mean, path_of_variance, path_of_dictionary, input_dim, dim_of_raw);
-    ClientSide client;
+    std::shared_ptr<Preprocessor> preprocessor = std::make_shared<Preprocessor>(path_pca_components, path_pca_mean, path_pca_variance, usable_index);
+    ClientSide client(preprocessor);
     client.generate_keys(scale, modulus, poly_modulus_degree);
-    const std::vector<Ciphertext> enc_input = client.process(path);
+    const std::vector<Ciphertext> enc_input = client.process_as_coef(path);
 
     end1 = std::chrono::system_clock::now();
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
@@ -130,8 +136,8 @@ int main_coef(){
     start1 = std::chrono::system_clock::now();
 
     ServerSide server(ml);
-    server.load_weight("/home/yamaguchi/idash2021/coef.csv");
-    server.load_bias("/home/yamaguchi/idash2021/bias.csv");
+    server.load_weight("/home/yamaguchi/idash2021/data/coef_200.npy");
+    server.load_bias("/home/yamaguchi/idash2021/data/bias_200.npy");
     const std::vector<std::vector<Ciphertext>> enc_result = server.process(enc_input);
 
     end1 = std::chrono::system_clock::now();
@@ -140,21 +146,26 @@ int main_coef(){
 
     start1 = std::chrono::system_clock::now();
 
-    std::vector<std::vector<double>> result = client.postprocess(enc_result);
+    std::vector<std::vector<double>> result = client.postprocess_as_coef(enc_result);
 
     end1 = std::chrono::system_clock::now();
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
     std::cout << "client post process time: " << elapsed << std::endl;
 
     // calculate accuracy
-    std::vector<std::vector<double>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/out_tests.csv", false, false);
-    int max, i;
+    std::vector<std::vector<float>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/dataset/test_answer.txt", false, false);
+    int max, i, j;
     int N = ans.size();
     float acc = 0.0;
 
     for (i = 0; i < N; i++)
     {
         max = distance(result[i].begin(), std::max_element(result[i].begin(), result[i].end()));
+        for (auto v : result[i])
+        {
+        std::cout << v << ", ";
+        }
+        std::cout << i << "," << max << ", ans:" << ans[i][0] << std::endl;
         acc += int(max == int(ans[i][0]));
     }
 
@@ -167,7 +178,7 @@ int main_coef(){
 }
 
 int main(){
-    main_batch();
+    // main_batch();
     main_coef();
     return 0;
 }

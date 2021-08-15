@@ -10,25 +10,26 @@ from feature_preprocess import feature_preprocess
 
 if __name__ == "__main__":
   ## load data
+  comp_dim = 200
   data_dir = "data"
-  X, y = feature_preprocess()
+  X, y = feature_preprocess(comp_dim=comp_dim)
 
   ## load trained pca class
-  data_file_name = f"{data_dir}/pca_200.pkl"
+  data_file_name = f"{data_dir}/pca_{comp_dim}.pkl"
   with open(data_file_name, "rb") as f:
     executor = pickle.load(f)
 
   executor.whiten = True
   X = executor.transform(X)
   np.save(f"{data_dir}/X_feature.npy", X)
-  X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True,)
+  X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, shuffle=True,)
 
   clf = LogisticRegression(random_state=0, max_iter=300).fit(X_train, y_train)
   score = clf.score(X_test, y_test)
   bias = clf.intercept_[:, None]
   coef = clf.coef_
 
-  np.save(f"{data_dir}/coef.npy", coef)
-  np.save(f"{data_dir}/bias.npy", bias)
+  np.save(f"{data_dir}/coef_{comp_dim}.npy", coef.astype("float32"))
+  np.save(f"{data_dir}/bias_{comp_dim}.npy", bias.astype("float32"))
 
   print("score is:", score)

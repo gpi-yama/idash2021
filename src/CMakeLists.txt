@@ -11,7 +11,8 @@ find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
-set(CMAKE_CXX_FLAGS "-g -O3 -fpermissive -fopenmp")
+set(CMAKE_CXX_FLAGS "-O3 -march=native -mavx512f -Ofast -fpermissive -fopenmp")
+# -g -msse4.2
 add_executable(sealexamples)
 
 target_sources(sealexamples
@@ -20,10 +21,10 @@ target_sources(sealexamples
         server/ServerSide.cpp
         client/ClientSide.cpp
         postprocess/SoftmaxPostprocessor.cpp
-        preprocess/DummyPreprocessor.cpp
         preprocess/PreProcessor.cpp
         utils/IOUtils.cpp
         utils/mathUtils.cpp
+        utils/npy.h
         ml/algebra.cpp
         ml/LogisticRegression.cpp
         ml/CoefLogisticRegression.cpp

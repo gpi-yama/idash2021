@@ -73,52 +73,66 @@ namespace capsuleGene{
         return dic;
     }
 
-    void Preprocessor::load_seq(std::ifstream& ifs,std::vector<std::string>& sequences,std::vector<std::string>& labels){
-        std::string line;
-        for(int i=0;i<BATCH*2;i++){ 
-            ifs >> line;
-            if(line[0]=='>'){
-                std::string label = Preprocessor::split(line,'_')[0].substr(1);
-                labels.push_back(label);
-            }else{
-                int d = MAX_SEQ - line.size();
-                line += std::string(d,'O');
-                sequences.emplace_back(line);
+    void Preprocessor::load_seq(const std::string path,std::vector<std::string>& sequences){
+        uint32_t d;
+        try{
+            std::ifstream ifs(path, std::ios::in);
+            ifs.exceptions(std::ifstream::badbit);
+            std::string line;
+            uint32_t num_rows = 0;
+            while (ifs.good()){
+                std::getline(ifs, line);
+                num_rows += 1;
+                // std::cout << "load seq" << std::endl;
+                if (line.empty()) break;
+                // if(line[0]=='>'){
+                    // std::string label = Preprocessor::split(line,'_')[0].substr(1);
+                    // labels.push_back(label);
+                // 
+                if (num_rows % 2 == 0){
+                    d = MAX_SEQ - line.size();
+                    line += std::string(d,'O');
+                    sequences.emplace_back(line);
+                }
             }
+            ifs.close();
         }
-        if(DATASET<sequences.size() || DATASET<labels.size()){
-            std::cerr<<"Bad data"<<std::endl;
+        catch (std::ios_base::failure const &e)
+        {
+            throw std::ios_base::failure(std::string("fatal error occured while opening file.") + e.what());
+        }
+        catch (std::exception const &e)
+        {
+            throw std::runtime_error(std::string("runtime exception occured while reading file") + e.what());
         }
     }
 
-    void Preprocessor::load_components(std::string path, Eigen::Matrix2f& m){
-        std::vector<std::vector<double>> csv = IOUtils::read_csv(path);
-        int i, j, N = csv.size(), M = csv[0].size();
-        for(i = 0; i < N; i++){
-            for (j = 0; j < M; j++){
-                m(i, j) = csv[i][j];
-            }
-        }
+    void Preprocessor::load_components(std::string path, std::vector<float> &out){
+        // char delimiter = ' ';
+        // IOUtils::read_csv(path, out, false, false, delimiter);
+        IOUtils::read_vector_npy(path, out);
+        // IOUtils::read_binary_vector(path, out);
     }
 
-    void Preprocessor::load_mean(std::string path, Eigen::VectorXf& m){
-        std::vector<double> csv = IOUtils::read_csv_vec(path);
-        int i, j, n = csv.size();
-        for(i = 0; i < n; i++){
-            m(i, j) = csv[i];
-        }
+    void Preprocessor::load_mean(std::string path, std::vector<float> &out){
+        // IOUtils::read_csv_vec(path, out);
+        IOUtils::read_vector_npy(path, out);
+        // IOUtils::read_binary_vector(path, out);
     }
         
-    void Preprocessor::load_variance(std::string path,Eigen::VectorXf& m){
-        std::vector<double> csv = IOUtils::read_csv_vec(path);
-        int i, j, n = csv.size();
-        for(i = 0; i < n; i++){
-            m(i, j) = std::sqrt(csv[i]);
+    void Preprocessor::load_variance(std::string path, std::vector<float> &out){
+        // IOUtils::read_csv_vec(path, out);
+        IOUtils::read_vector_npy(path, out);
+        // IOUtils::read_binary_vector(path, out);
+        uint32_t i;
+        for (i = 0; i < N_COMPONENTS; i++){
+            out[i] = std::sqrt(out[i]);
         }
     }
 
-    void Preprocessor::multilabel_binalize(std::vector<std::vector<bool>>& buf,std::vector<std::string>& seqs,std::multimap<std::string,std::vector<std::string>>& dic){
-        for(int i=0;i<BATCH;i++){
+    void Preprocessor::multilabel_binarize(std::vector<std::vector<float>>& buf,std::vector<std::string>& seqs,std::multimap<std::string,std::vector<std::string>>& dic){
+        int N = seqs.size();
+        for(int i=0;i<N;i++){
             auto iter = dic.find(std::to_string(i));
             std::vector<std::string> nucls=iter->second;
             buf[i].resize(nucls.size()*MAX_SEQ);
@@ -129,87 +143,129 @@ namespace capsuleGene{
         }
     }
 
-    void Preprocessor::onehot_encode(std::array<std::array<bool,Y_COLUMN>,BATCH>& buf,std::vector<std::string>& words){
-        for(int i=0;i<BATCH;i++){
-            buf[i].fill(false);
-            if(words[i]=="B.1.427"){
-                buf[i][0]=true;
+    void Preprocessor::binarize_by_existance(std::vector<std::vector<float>>& buf, std::vector<std::string>& seqs, std::unordered_map<char, int> rnaMap, const uint32_t batch_size){
+
+        std::array<std::array<float, 4>, 16> rnaTable = {{
+        //     A      C      G      T
+        {1.f,   0.f,   0.f,   0.f},
+        {0.f,   1.f,   0.f,   0.f},
+        {0.f,   0.f,   1.f,   0.f},
+        {0.f,   0.f,   0.f,   1.f},
+        {0.5f,  0.f,   0.5f,  0.f},   // A or G
+        {0.f,   0.5f,  0.f,   0.5f}, // C or T
+        {0.f,   0.5f,  0.5f,  0.f},  // G or C
+        {0.5f,  0.f,   0.f,   0.5f},  // A or T
+        {0.f,   0.f,   0.5f,  0.5f},  // G or T
+        {0.5f,  0.5f,  0.f,   0.f},  // A or C
+        {0.f,   0.33f, 0.33f, 0.33f},  // C or G or T
+        {0.33f, 0.f,   0.33f, 0.33f},  // A or G or T
+        {0.33f, 0.33f, 0.f,   0.33f},  // A or C or T
+        {0.33f, 0.33f, 0.33f, 0.f}, // A or C or G
+        {0.25f, 0.25f, 0.25f, 0.25f},  // any base
+        {0.f,   0.f,   0.f,   0.f}
+        }};  // NONE
+    
+        uint32_t i, j, k;
+        int key;
+        float v;
+        std::array<float, X_COLUMN> binarized;
+        for(i = 0; i < batch_size; i++){
+            for(j = 0; j < MAX_SEQ; j++){
+                key = rnaMap[seqs[i][j]];
+                for(k = 0; k < 4; k++){
+                    binarized[j*4 + k] = rnaTable[key][k];
+                }
             }
-            else if(words[i]=="B.1.1.7"){
-                buf[i][1]=true;
-            }
-            else if(words[i]=="P.1"){
-                buf[i][2]=true;
-            }
-            else {
-                buf[i][3]=true;
-            }
+            this->pca(binarized, buf[i]);
         }
     }
         
     Preprocessor::Preprocessor(const std::string path_pca_components, 
                                const std::string path_pca_mean, 
                                const std::string path_pca_variance, 
-                               const std::string path_dictionary,
-                               const int N_COMPONENTS,
-                               const int X_COLUMN)
+                               const std::string path_dictionary)
     {
-        this->N_COMPONENTS = N_COMPONENTS;
-        this->X_COLUMN = X_COLUMN;
+        // std::multimap<std::string,std::vector<std::string>> dic = Preprocessor::load_dictionary(path_dictionary);
 
-        std::ifstream ifs2(path_pca_components,std::ios::in);
-        std::ifstream ifs3(path_pca_mean,std::ios::in);
-        std::ifstream ifs4(path_pca_variance,std::ios::in);
-        std::multimap<std::string,std::vector<std::string>> dic = Preprocessor::load_dictionary("cols_from_python.txt");
+        sqrt_variance.resize(N_COMPONENTS);
+        mean.resize(X_COLUMN);
+        components.resize(N_COMPONENTS * X_COLUMN);
 
-        this->components.resize(N_COMPONENTS,X_COLUMN);
-        Preprocessor::load_components(path_pca_components,components);
-        
-        this->mean.resize(X_COLUMN);
+        std::cout << "load mean" << std::endl;
         Preprocessor::load_mean(path_pca_mean, mean);
         
-        this->sqrt_variance.resize(N_COMPONENTS);
-        Preprocessor::load_variance(path_pca_variance,sqrt_variance);
+        std::cout << "load variance" << std::endl;
+        Preprocessor::load_variance(path_pca_variance, sqrt_variance);
 
+        std::cout << "load components" << std::endl;
+        Preprocessor::load_components(path_pca_components, components);
     }
 
-    std::vector<std::vector<double>> Preprocessor::process(const std::string data_path){
-    	int i,j, BATCH;
+    void Preprocessor::pca(std::array<float, X_COLUMN> &X, std::vector<float> &out){
+        /* in-place subtraction to X's rows by mean */
+        uint32_t i, j;
 
-        std::ifstream ifs1(data_path, std::ios::in);
-        
+        for (i = 0; i < X_COLUMN; i++){
+            X[i] -= mean[i];
+        }
+
+        float summed;
+        for (i = 0; i < N_COMPONENTS; i++){
+            summed = 0.f;
+            for (j = 0; j < X_COLUMN; j++){
+                summed += components[i*X_COLUMN + j] * X[j];
+            }
+            out[i] = summed;
+        }
+
+        for (i = 0; i < N_COMPONENTS; i++){
+            out[i] /= sqrt_variance[i];
+        }
+    }
+
+    std::vector<std::vector<float>> Preprocessor::process(const std::string data_path){
         /* Load Sequences */
         std::vector<std::string> sequences;
-        std::vector<std::string> labels;
-        Preprocessor::load_seq(ifs1,sequences,labels);
-
-        BATCH = sequences.size();
+        std::cout << "start load seq" << std::endl;
+        Preprocessor::load_seq(data_path,sequences);
+        std::cout << "load ok" << std::endl;
+        uint32_t BATCH = sequences.size();
+        std::cout << "batch size:" << BATCH << std::endl;
 
         /* MultiLabelBinalize */
-        std::vector<std::vector<bool>> X(BATCH);
-        Preprocessor::multilabel_binalize(X, sequences,dic);
-
-        Eigen::Matrix2f X_(BATCH,X_COLUMN);
-        for(i=0;i<BATCH;++i){
-            for(j=0;j<X_COLUMN;++j)X_(i,j)=X[i][j];
-        }
-
-        /* in-place subtraction to X's rows by mean */
-        X_.rowwise() -= mean.transpose();
-
-        /* pca transform */
-        X_ = components * X_;
-        
-        /* actualy this operation is like normalization */
-        X_.array().rowwise() /= sqrt_variance.transpose().array();
-
-        std::vector<std::vector<double>> x_vec(BATCH, std::vector<double>(X_COLUMN));
-        for(i = 0; i < BATCH; ++i){
-            for(j = 0; j < X_COLUMN; ++j){
-                x_vec[i][j] = X_(i, j);
-            }
-        }
-        return x_vec;
+        std::vector<std::vector<float>> X(BATCH, std::vector<float>(N_COMPONENTS));
+        std::cout << "binarize" << std::endl;
+        Preprocessor::binarize_by_existance(X, sequences, rnaMap, BATCH);
+        return X;
     }
 
+
+    std::vector<float> Preprocessor::dot(std::vector<float> &x, std::vector<std::vector<float>> &m){
+        uint32_t i;
+        std::vector<float> result(N_COMPONENTS);
+        for (i = 0; i < N_COMPONENTS; i++){
+            result[i] = std::inner_product(m[i].begin(), m[i].end(), x.begin(), 0.f);
+        }
+        return result;
+    }
+
+    std::vector<std::vector<float>> Preprocessor::batch_dot(std::vector<std::vector<float>> &x, std::vector<std::vector<float>> &m){
+        uint32_t i, j, k, N = x.size();
+        // std::cout << N << ", " << x[0].size() << ", " << m.size() << ", " << m[0].size() << std::endl;
+        std::vector<std::vector<float>> result(N, std::vector<float>(N_COMPONENTS));
+        float summed;
+        for (i = 0; i < N; i++){
+            // for (j = 0; j < N_COMPONENTS; i++){
+            //     result[i][j] = std::inner_product(m[j].begin(), m[j].end(), x[i].begin(), .0f);
+            // }
+            for (j = 0; j < N_COMPONENTS; j++){
+                summed = 0.f;
+                for (k = 0; k < X_COLUMN; k++){
+                    summed += m[j][k] * x[i][k];
+                }
+                result[i][j] = summed;
+            }
+        }
+        return result;
+    }
 }

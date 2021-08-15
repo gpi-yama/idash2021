@@ -1,9 +1,9 @@
 #include "algebra.h"
-#include "../postprocess/SigmoidPostprocessor.h"
+#include "ML.h"
 
 namespace capsuleGene
 {
-    class LogisticRegression
+    class LogisticRegression: public ML
     {
     private:
         std::vector<std::vector<double>> weight;
@@ -19,15 +19,14 @@ namespace capsuleGene
         int slot_size;
 
     public:
-        LogisticRegression(){};
         ~LogisticRegression()
         {
         }
         LogisticRegression(const uint32_t input_dim, const uint32_t output_dim, const double scale, const int slot_size, const std::shared_ptr<Evaluator> evaluator, const std::shared_ptr<CKKSEncoder> encoder, const std::shared_ptr<GaloisKeys> gal_keys, const std::shared_ptr<RelinKeys> rel_keys);
-        std::vector<std::vector<Ciphertext>> predict(const std::vector<Ciphertext> &x);
+        std::vector<std::vector<Ciphertext>> predict(const std::vector<Ciphertext> &x) override;
 
         // setter
-        void set_bias(const std::vector<std::vector<double>> bias);
-        void set_weight(const std::vector<std::vector<double>> weight);
+        void set_bias(const std::vector<float> &bias) override;
+        void set_weight(const std::vector<float> &weight) override;
     };
 }
