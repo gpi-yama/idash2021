@@ -19,23 +19,23 @@ int preprocessing(std::string parameter_folder, std::string input_path){
 
 int main(int argc, char *argv[]){
     if (argc != 2){
-        std::cerr << "usage ./bin/preprocessing input_path" << std::endl;
+        std::cerr << "usage: ./bin/preprocessing /path/to/Challange.fa" << std::endl;
         return -1;
     }
     // 
     std::string input_path = argv[1];
     std::string parameter_folder = "../data";
 
-    printf("\n====================================================\n");
+    
+    printf("---------------------------\n");
     printf("input_path: %s\n", input_path.c_str());
     printf("parameter_folder: %s\n", parameter_folder.c_str());
+    printf("--- start preprocessing ---\n");
 
-    // if you want to run with basic lr method
-    // main_batch(parameter_folder, input_path, output_path);
-    // if you want to use coefficient encoding lr pelase use this function
     Timer local_time;
     int batch_size = preprocessing(parameter_folder, input_path);
     IOUtils::write_batch_size_to_file(batch_size, parameter_folder+"/batch_size.txt");
     std::cout << "preprocessing_time[ms]: " << local_time.end() << std::endl;
+    printf("---- end preprocessing ----\n");
     return 0;
 }

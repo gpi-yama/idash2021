@@ -103,20 +103,22 @@ int main_coef(std::string parameter_folder, std::string output_path){
 
 int main(int argc, char *argv[]){
     if (argc != 2){
-        std::cerr << "usage ./bin/pred_rna output_folder" << std::endl;
+        std::cerr << "usage: ./bin/pred_rna /path/to/output_folder" << std::endl;
         return -1;
     }
     // 
     std::string parameter_folder = "../data";
     std::string output_path = argv[1];
 
-    printf("\n====================================================\n");
-    printf("output_path: %s\n", output_path.c_str());
-
+    printf("------------------------\n");
+    printf("output_folder: %s\n", output_path.c_str());
+    printf("parameter_folder: %s\n", parameter_folder.c_str());
+    printf("--- start prediction ---\n");
     // if you want to run with basic lr method
     // main_batch(parameter_folder, output_path);
     // if you want to use coefficient encoding lr pelase use this function
-    
     main_coef(parameter_folder, output_path);
+    printf("---- end prediction ----\n");
+    
     return 0;
 }
