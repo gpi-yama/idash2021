@@ -14,18 +14,14 @@ if __name__ == "__main__":
   data_dir = "data"
   X, y = feature_preprocess(comp_dim=comp_dim)
 
-  ## load trained pca class
   data_file_name = f"{data_dir}/pca_{comp_dim}.pkl"
   with open(data_file_name, "rb") as f:
     executor = pickle.load(f)
 
   executor.whiten = True
   X = executor.transform(X)
-  np.save(f"{data_dir}/X_feature.npy", X)
-  X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, shuffle=True,)
-
-  clf = LogisticRegression(random_state=0, max_iter=300).fit(X_train, y_train)
-  score = clf.score(X_test, y_test)
+  clf = LogisticRegression(random_state=0, max_iter=300, tol=0.00001).fit(X, y)
+  score = clf.score(X, y)
   bias = clf.intercept_[:, None]
   coef = clf.coef_
 
