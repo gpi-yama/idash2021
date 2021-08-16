@@ -39,7 +39,13 @@ namespace capsuleGene
 
         static void write_binary_vector2d(const std::string path, std::vector<std::vector<float>> &x);  
 
+        static void write_prob_to_file(std::vector<std::vector<double>> &x, std::string filename);
+
         static void write_label_to_file(std::vector<std::string> &x, std::string filename);
+
+        static void write_batch_size_to_file(int batch_size, std::string filename);
+        
+        static int load_batch_size_from_file(std::string filename);
     };
 
 }

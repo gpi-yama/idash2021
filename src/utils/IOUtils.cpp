@@ -210,6 +210,28 @@ namespace capsuleGene
         file.close();
     }
 
+    void IOUtils::write_prob_to_file(std::vector<std::vector<double>> &x, std::string filename){
+        std::ofstream myfile(filename);
+        uint32_t i, j;
+        uint32_t N = x.size();
+        uint32_t M = x[0].size();
+
+        myfile << "index, >B.1.526, >B.1.1.7, >B.1.427, >P.1" << std::endl;
+        for (i = 0; i < N; i++)
+        {
+            myfile << i << ", ";
+            for (j = 0; j < M; j++)
+            {
+                myfile << x[i][j];
+                if (j < M - 1) {
+                    myfile << ", ";
+                }
+            }
+            myfile << std::endl;
+        }
+        myfile.close();
+    }
+
     void IOUtils::write_label_to_file(std::vector<std::string> &x, std::string filename){
         std::ofstream myfile(filename);
         int vsize = x.size();
@@ -218,5 +240,19 @@ namespace capsuleGene
             myfile << x[n] << std::endl;
         }
         myfile.close();
+    }
+
+    void IOUtils::write_batch_size_to_file(int batch_size, std::string filename){
+        std::ofstream myfile(filename);
+        myfile << batch_size << std::endl;
+        myfile.close();
+    }
+
+    int IOUtils::load_batch_size_from_file(std::string filename){
+        std::ifstream file(filename);
+        std::string line;
+        std::getline(file, line);
+        file.close();
+        return stoi(line);
     }
 }

@@ -10,6 +10,10 @@ class Timer
             start = std::chrono::system_clock::now();
         };
 
+        Timer(std::chrono::system_clock::time_point start){
+            this->start = start;
+        };
+
         double end()
         {
             std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
@@ -21,4 +25,9 @@ class Timer
         {
             start = std::chrono::system_clock::now();
         }
+
+        std::chrono::system_clock::time_point get_start_time() {
+            return this->start;
+        }
+        
 };

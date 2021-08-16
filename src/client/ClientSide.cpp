@@ -240,7 +240,7 @@ namespace capsuleGene
     std::vector<std::vector<double>> ClientSide::postprocess(const std::vector<std::vector<Ciphertext>> &x)
     {
         std::vector<std::vector<double>> result = this->batch_decrypt(x);
-        return result; //SoftmaxPostprocessor::process(result);
+        return SoftmaxPostprocessor::process(result);
     }
 
     std::vector<std::vector<double>> ClientSide::postprocess_as_coef(const std::vector<std::vector<Ciphertext>> &x){
@@ -263,7 +263,7 @@ namespace capsuleGene
                 reshaped_result[i][j] = result[j][i];
             }
         }
-        return reshaped_result; // SoftmaxPostprocessor::process(reshaped_result);
+        return SoftmaxPostprocessor::process(reshaped_result);
     }
 
     std::shared_ptr<Evaluator> ClientSide::getEvaluator()
