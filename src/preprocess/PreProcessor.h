@@ -17,9 +17,6 @@
 #include "../utils/IOUtils.h"
 #include "../constants.h"
 
-const std::string DATA_PATH = "Data/Challenge.fa";
-const std::string BASIS_PATH = "Challenge/basis.csv";
-
 #include <cassert>
 
 namespace capsuleGene

@@ -18,10 +18,12 @@ docker build . -t capsule_gene
 and then please run docker container.
 
 ```
-docker run -it -v /path/to/idash2021 capsule_gene bash
+docker run -it -v /path/to/idash2021:/idash2021 capsule_gene bash
 ```
 
 ## Compile code
+you should be in the container and pwd is `/idash2021`
+
 1. cmake
 ```bash
 mkdir build && cd build && cmake ../src/
