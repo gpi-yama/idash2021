@@ -6,7 +6,6 @@
 #include <iostream>
 #include <array>
 #include <memory>
-#include "../constants.h"
 #include "npy.h"
 
 // using namespace NTL;
@@ -31,11 +30,16 @@ namespace capsuleGene
 
         static void read_vector_npy(const std::string path, std::vector<float> &out);
         static void read_vector_npy(const std::string path, std::vector<int> &out);
-        static void read_matrix_npy(const std::string path, std::vector<std::vector<float>> &out);
 
         static void read_binary_vector(const std::string path, std::vector<float> &x);
 
         static void write_binary_vector(const std::string path, std::vector<float> &x);  
+
+        static void read_binary_vector2d(const std::string path, std::vector<std::vector<float>> &x, uint32_t num_row, uint32_t num_col);
+
+        static void write_binary_vector2d(const std::string path, std::vector<std::vector<float>> &x);  
+
+        static void write_label_to_file(std::vector<std::string> &x, std::string filename);
     };
 
 }
