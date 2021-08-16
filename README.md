@@ -21,8 +21,7 @@ and then please run docker container.
 docker run -it -v /path/to/idash2021 capsule_gene bash
 ```
 
-##
-
+## Compile code
 1. cmake
 ```bash
 mkdir build && cd build && cmake ../src/
@@ -33,26 +32,34 @@ mkdir build && cd build && cmake ../src/
 make -j
 ```
 
-3. run preprocessing
+## Computation
+1. run preprocessing
 ```bash
 ./bin/preprocessing /path/to/Challenge.fa
 ```
 
-4. run computations
+2. run computations
 ```bash
 ./bin/pred_rna /path/to/output_folder
 ```
 
-5. finally you can get probabilities from `/path/to/output_folder/result.csv` and computation times from `/path/to/output_folder/metrics.csv`
+3. finally you can get probabilities from `/path/to/output_folder/result.csv` and computation times from `/path/to/output_folder/metrics.csv`
 
 
 # Algorithms
 ## Overview
 PCA and logistic regression (LR) is used to predict labels of RNAs. 
 In the LR, we employed CKKS scheme with Microsoft SEAL.  
-Specifficaly, the weights and features are embedded as coefficients of cannonical embedding.  
+Specifficaly, the weights and features are encoded as coefficients of cannonical embedding.  
 Then, you don't need to rotate the ciphertext to sum.  
 With this system you can get acc. of 0.99 with subseconds of prediction and subminute of preprocessing.
+
+coefficient based encoding is implemented in kenmaro3's repository, a fork of Microsoft/SEAL:  
+https://github.com/kenmaro3/SEAL/tree/ckks_coeff_365
+
+The specific commit is:  
+https://github.com/kenmaro3/SEAL/commit/7ff9d3505cf7888ec846586d974562bfb53f513c  
+
 
 ## Preprocessing
 First of all, input RNAs are embedded into the 4dim existance ratio vector as following map function.  
