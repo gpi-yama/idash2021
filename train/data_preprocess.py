@@ -71,7 +71,7 @@ def load_df(filename = "dataset/Challenge.fa"):
     for j in range(diff):
       y[i] += "N"
 
-  xs = [">B.1.526", ">B.1.1.7", ">B.1.427", ">P.1"]
+  xs = [">B.1.427", ">B.1.1.7", ">P.1", ">B.1.526"]
   print(f'seq_len: {len(y[0])}')
 
 

@@ -5,9 +5,9 @@ import random
 def main():
     with open("dataset/Challenge.fa", "r") as f:
         lines = f.readlines()
-    xs = [">B.1.526", ">B.1.1.7", ">B.1.427", ">P.1"]
-    indices = np.loadtxt("data/test_indices.csv").astype("int").tolist()
-
+    xs = [">B.1.427",">B.1.1.7",">P.1",">B.1.526"]
+    # indices = np.loadtxt("data/test_indices.csv").astype("int").tolist()
+    indices = np.arange(8000)
 
     x = []
     y = []
@@ -45,14 +45,14 @@ def main():
             df_list.append(y[i])
         df_lists.append(df_list)
     
-    ftest = open("dataset/Challenge_test.fa", "w")
+    # ftest = open("dataset/Challenge_test.fa", "w")
     ftest_ans = open("dataset/test_answer.txt", "w")
     for i in indices:
-        ftest.write(str(df_lists[i][0])+"\n")
-        ftest.write(df_lists[i][2]+"\n")
+        # ftest.write(str(df_lists[i][0])+"\n")
+        # ftest.write(df_lists[i][2]+"\n")
         ftest_ans.write(str(df_lists[i][0])+"\n")
     
-    ftest.close()
+    # ftest.close()
     ftest_ans.close()
 
 

@@ -216,7 +216,7 @@ namespace capsuleGene
         uint32_t N = x.size();
         uint32_t M = x[0].size();
 
-        myfile << "index, >B.1.526, >B.1.1.7, >B.1.427, >P.1" << std::endl;
+        myfile << "index, B.1.427, B.1.1.7, P.1, B.1.526" << std::endl;
         for (i = 0; i < N; i++)
         {
             myfile << i << ", ";
