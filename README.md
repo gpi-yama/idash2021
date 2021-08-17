@@ -1,72 +1,222 @@
-# IDASH2021
-IDASH 2021 Strain Classification source codes.  
-(C)2021 Eaglys inc.  
+# IDASH2021 Documentation Upon Submission:
 
-Contributors: R. Yamaguchi, K. Mihara, K. Sato, Y. Tsuchiya, Y. Maruyama (Eaglys Inc.)
+## Team: EAGLYS Inc (KENMARO-RYOHEI)
 
-# Usage
-you should be in `path/to/idash2021`
+We are KENMARO and RYOHEI, from EAGLYS Inc, at Tokyo, Japan.  
+First of all, thank you for hosting this great competition.  
+We appreciate all of your supports during competition and we have greatly enjoyed this competetion tasks.
 
-## Preparation
-Prease prelare docker container.  
+**Upon submission, we will upload two implementations, Model1 and Model2.**
 
-First of all, make docker image
-```
-docker build . -t capsule_gene
-```
+We will report following first,
 
-and then please run docker container.
+## Measured time
 
-```
-docker run -it -v /path/to/idash2021:/idash2021 capsule_gene bash
-```
+- raw preprocessing time
+- cipher inference time
 
-## Compile code
-you should be in the container and pwd is `/idash2021`
+## Accuracy for validation dataset
 
-1. cmake
-```bash
-mkdir build && cd build && cmake ../src/
-```
+- accuracy using validation dataset compared with given labels
 
-2. compile
-```bash
-make -j
-```
+   
+then, will explain the followings.
+## Algorithm
 
-## Computation
-1. run preprocessing
-```bash
-./bin/preprocessing /path/to/Challenge.fa
-```
+- raw preprocessing algorithm
+- cipher infenrece algorithm
 
-2. run computations
-```bash
-./bin/pred_rna /path/to/output_folder
-```
+## Differences of submitted two models
 
-3. finally you can get probabilities from `/path/to/output_folder/result.csv` and computation times from `/path/to/output_folder/metrics.csv`
+<br>
+
+## Security Settings
+
+<br>
+Lastly, we will explain 
+
+<br>
+<br>
 
 
-# Algorithms
-## Overview
-PCA and logistic regression (LR) is used to predict labels of RNAs. 
-In the LR, we employed CKKS scheme with Microsoft SEAL.  
-Specifficaly, the weights and features are encoded as coefficients of cannonical embedding.  
-Then, you don't need to rotate the ciphertext to sum.  
-With this system you can get acc. of 0.99 with subseconds of prediction and subminute of preprocessing.
+## How To Use Our Model
 
-coefficient based encoding is implemented in kenmaro3's repository, a fork of Microsoft/SEAL:  
-https://github.com/kenmaro3/SEAL/tree/ckks_coeff_365
+to desribe the commands need to run to run our model using docker image.  
 
-The specific commit is:  
-https://github.com/kenmaro3/SEAL/commit/7ff9d3505cf7888ec846586d974562bfb53f513c  
+<br>
+<br>
 
+## Measured time (using 2000 validation datasets)
+
+|model\process|  Preprocess [ms]|  Inference [ms]|
+|----| ---- | ---- |
+|Model1|  17222   |  1569 |
+|Model2|  44953  |1942    |
+
+NOTE: this is measured in our environment and can be varied in real environment.  
+Model1 is faster in preprocessing and inference, however, model1 uses very naive preprocessing method as described in following.  
+Model2 uses reasonalbe preprocessing method by understanding each nucleotide features, however, computationally little bit heavier, which will be mentioned later.  
+
+
+<br>
+
+## Achieved Accuracy (using 2000 validation datasets)
+
+|model|  Accuracy |  
+|----| ---- |
+|Model1|  98.8  |
+|Model2|  98.2  |
+
+By simply using validation dataset out of give open dataset,  
+model1 and model2 shows almost same accuracy.  
+
+<br>
+<br>
+
+## Algorithm
 
 ## Preprocessing
-First of all, input RNAs are embedded into the 4dim existance ratio vector as following map function.  
 
-```py
+We followed two steps for preprocessing.
+
+- Onehot encoding 
+- Feature extraction by PCA
+
+Since Model1 and Model2 have different approach to this Onehot encoding,  
+we separated our submissions.  
+We will explain the differences in more detail later.  
+
+<br>
+
+## Inference
+
+We used 
+
+- Logistic Regression
+
+
+In order to achieve logistic regression inference with homomorphic encryption,  
+we utilized Microsoft SEAL for our lattice based encryption.  
+In addtion to the original implementation of SEAL, however,   
+
+**we used our original trick to speed up the linear operation of logistic regression.**
+
+<br>
+
+Let us explain about this in little detail.  
+
+<br>
+
+### Speed point of view
+
+**Instead of using canonical embedding by CKKS encoding, we used coefficient packing.**  
+
+In Microsoft SEAL, only BFV scheme has coefficient packing which is the direct encoding the number onto polynomial coefficient, CKKS only supports canonical embedded space in sub-ring to utilize SIMD operation.  
+This is very powerful in some cases because summation and multiplication in each sub-ring can be easily done.  
+However, in order to do inner product of two vector, rotation operation is needed to sum up the element between the sub-ring.  
+
+**Since we found this inner product can be done more efficiently using coefficient method, 
+we implemeted this coeffifient encoding method in CKKS scheme 
+at https://github.com/kenmaro3/SEAL/tree/ckks_coeff_365** 
+
+By using this coefficient for CKKS, we can have advantages for speed significantly.  
+Since we can pack two vectors in forward-backward order to calculate inner product of two. 
+Since it uses intrinsic convolutional operation of two polynomial, 
+we do not have to operate rotation operation as should be done for sure in CKKS canonical embedded encoding method.  
+
+For example, we want to calculate inner product of two vectors,   
+$W = {2, 4, 1}$, $X = {1, 2, 2}$,  
+
+then these vectors are embedded into ploynoinal space as:
+```
+X = x^2 + 2x + 2
+W = x^2 + 4x + 2
+```
+
+Note that the weights are embedded in reversed order.
+Then multiply these polynominals, you can get
+
+```
+x^4 + 6x^3 + 12x^2 + 12x + 4
+```
+where the coefficient of x^2 is the result of dot product.
+
+
+Since the rotation operation in CKKS is as heavy as ciphertext multiplication, cutting this operation can reduce the computation time significantly.  
+
+Not only cutting rotation operation, this method leads us to reduce the modulus chain of the encryption settings, hence, this method can benefit us using lighter encryption parameters, which can also contribute to improve the speed for encryption, decryption and computation.  
+For this reasons, we decided to use CKKS + Coefficient method in our solutions.  
+
+<br>
+
+### Accuracy point of view
+Since we use CKKS scheme, we can achieve better accuracy than using BFV. 
+We can expect more flexible implementation for real number encoding, which leads us not to degrade the inference accuracy compared with raw inference as best as possible.  
+
+In conclusion, our coefficient encoding method using CKKS holds the advantage as described table bellow.  
+
+
+<br>
+
+### Summary of Our Approach
+
+
+|Scheme\Point of View|  Accuracy |  Speed |
+|----| ---- | ---- |
+|CKKS + Cannonical embedding| [x] |  [ ]|
+|BFV  + Coefficient encoding|  [ ] | [x]|
+|CKKS + Coefficient encoding (ours)|  [x] | [x]|
+
+Using CKKS enables us to embed real number, which has huge advantage over BFV in this ML application.  
+
+CKKS Coefficient encoding method can achieve **10x speed up** compared with CKKS Cannonical embedding encoding method, which was measured by Ryohei.  
+In his implementation (Model2), this significance can be tested quite easily by switching two function in main program ON and OFF.  
+
+```
+int main{
+    ...
+    ...
+    // if you want to run with basic lr method please use this function
+    main_batch(parameter_folder, input_path, output_path);
+    // if you want to use coefficient encoding lr pelase use this function
+    // main_coef(parameter_folder, input_path, output_path);
+}
+
+```
+
+<br>
+<br>
+<br>
+
+## Diffences between Model1 and Model2
+
+<br>
+
+### Model1
+The differences between model1 and model2 is the approach to the preprocessing.  
+In short, model1 uses more naive approach to cut the length of input sequence.  
+
+When model1 reads the input sequence, it only reads every 50 protein,  
+therefore, when it reads the sequence, each sequence becomes length of 600.  
+After this loading, unique value for each column is found by Pandas library and converted to one-hot form.  
+As a result, one hot encoded sequence becomes around 3000 dimensions, 
+we take this as an input for PCA, which brings dimension down to 200.  
+
+We employed this approach in the beggining of implementation since MASH uses hash function for chunked sequence.  
+We tried to mimick this approach naively first to see how much accuracy we can still achieve.  
+Actually we found that this naive can already achieve 98.8% for validation datasets as reported above.  
+
+<br>
+
+### Model2
+
+Instead of reading not all the protein from the sequence,  
+model2 reads all the protein of the sequence.  
+If we naively extend each column into all the available nucleotide, one-hot encoding becomes too large.
+To avoid above and to improve speed, input RNAs are embedded into the 4dim existance ratio vector as following map function.
+This can be done because all the nucleotide alphabet can be described by lienar superposition of basic nucleotide, which is A, C, G and T.  
+
+```
 nucleotide_map = {
   #     A    C    G    T
   "A": [1,   0,   0,   0],
@@ -88,115 +238,148 @@ nucleotide_map = {
 }
 ```
 
-where `O` represents 0 padding to fix the length of RNAs.   
+For example, simple sequence such as ATR can be embedded like this,  
 
-Then single RNA is embedded into a vector like:
-```py
-                    #-- A ---#, #-- T ---#, # --
+```
 embedding_func("ATR") = [1, 0, 0, 0, 0, 0, 0, 1, 0.5, 0, 0.5, 0]
 ```
 
-Then you can get embedded vector of RNA.  
-However it is too long to predict the label from it.  
-To fix this problem, PCA is employed to reduce the dimention.  
-PCA is commom method for ML even in the RNAs emmbedding.  
+Since this map each nucleotide to length of four,  
+each sequence becomes around 100,000 dimension.  
+This is taken as an input for PCA to extract the features down to 200 dimensions as model1.  
 
-We employed 200 as number of components for PCA considering calculation cost and accuracy of the model.
+### Inference of model1 and model2
 
-Finally you can get feature vector of RNA with size of 200.
+Both of the model1 and model2 uses Logistic Regression to classify 200 dimensions input to 4 dimensions of strain.  
 
-In this task, 8000 RNAs are passed to this system.  
-Therefore, the RNAs are converted to the matrix with size of (8000, 200).
 
-## Encryption methods
-In the encryption phase, the input vectors are embedded into a ciphertext until it exceeds the slot size.  
-In this system, 2048 is employed as the slot size because polynominal modulus degree is 4096.  
-Therefore, you can process 10 RNAs within single ciphertext in this system.  
-We need 800 ciphertext to process 8000 RNAs.
+<br>
+<br>
+<br>
 
-For encrypting these vectors, we embedded weights and features as coefficent of plaintext in the cannonical embedding phase.  
-After that these plaintexts are encrypted as CKKS ciphertext.  
 
-## Logistic regression  
-During the logistic regression, the weights plaintext $W={w_0, ..., w_N}$ and feature ciphertext $X={x_0, ..., x_N}$ is multiplied.  
-As mentioned in the previous section, the values are embedded as coefficients.  Therefore, by multipling these features and weights, you can get dot product result.  
-For example, $W = {2, 4, 1}$, $X = {1, 2, 2}$, then these vectors are embedded into ploynoinal space as:
-```
-X = x^2 + 2x + 2
-W = x^2 + 4x + 2
-```
-Note that the weights are embedded in reversed order.    
+## Security Settings
 
-Then multiply these polynominals, you can get
-```
-x^4 + 6x^3 + 12x^2 + 12x + 4
-```
-where the coefficient of x^2 is the result of dot product.  
-
-After calculating dot(W, X), relinialization is applied and bias term is added.  
-
-## Postprocessing
-By decrypting this ciphertext at client side and applying argmax, you can get result of logistic regression.  
-
-## Advantages of this method
-If you comment out main_coef and use main_batch in main.cpp, you can use basic SEAL encryption version's logistic regression.  
-But by using coefficient encoding method, it is 10 times faster than basic SEAL logistic regression.  
-```cpp
-int main{
-    ...
-    ...
-    // if you want to run with basic lr method please use this function
-    main_batch(parameter_folder, input_path, output_path);
-    // if you want to use coefficient encoding lr pelase use this function
-    // main_coef(parameter_folder, input_path, output_path);
-}
-    
-```
-
-# Security settings
-MicroSoft SEAL with CKKS scheme is used for encryption scheme with 128bit security.  
+Microsoft SEAL with CKKS scheme is used for encryption scheme with 128bit security.
 Parameters are as follows:
-```cpp
+
+```
 static const double SCALE = pow(2.0, 30);
 static const int POLY_MODULUS_DEGREE = 4096;
 static const std::vector<int32_t> MODULUS = {38, 30, 38};
-```  
-
-
-# Training of the models  
-We prepared PCA and LR parameters in `idash2021/data/` but you can get parameters by yourself.  
-
-Please run the python codes in `idash2021/train` as follows
-
-```bash
-# Prepare numeric dataset
-$ python3 train/data_preprocess.py
-
-# after that train the PCA and LR
-$ python3 train/train_lr.py
 ```
 
+## How To Use Our Model
+<br>
 
-# Licences
-## Microsoft SEAL
-    MIT License
+## How To Use Model1
 
-    Copyright (c) Microsoft Corporation. All rights reserved.
+git repository is here (https://github.com/kenmaro3/idash2021)
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
+<br>
 
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
+### pull docker image from docker hub
+```
+$ docker pull kenmaro/idash2021
+```
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
+### run docker container
+```
+$ docker run --name idash -itd -v <path_to_the_folder_containing_fastafile>:/data/ kenmaro/idash2021
+
+```
+### enter docker container and run the inference
+```
+$ docker exec -it idash2021 bash
+```
+
+with this, you should see fasta file at /data/***.fa
+
+and please make sure the path of fasta file at /from_local/run_test.sh 
+line 3 is pointing to the file mounted to this container. (default /data/Challenge.fa)
+at line 5, please specify the input datasize (# of test data, as default,  set as 2000)  
+
+```
+>>>run_test.sh
+rm -rf /from_local/results /from_local/pp_data
+mkdir /from_local/results /from_local/pp_data
+python test_main.py /data/Challenge.fa
+./seal/test_main_cpp /from_local/pp_data /from_local/trained_model /from_local/results 2000
+```
+
+### activate pyenv
+```
+$ source setup.sh  
+```
+
+### run run_test.sh
+```
+$ sh run_test.sh
+```
+
+### check results and labels
+```
+$ cat constants.py
+```
+```
+xs = [">B.1.427", ">B.1.1.7", ">P.1", ">B.1.526"]
+```
+1st line of constants.py describes the label of the results.  
+e.g) if label is 0, means that sequence is >B.1.427.
+
+$ ls -l /from_local/results
+```
+-rw-r--r-- 1 root root    28 Aug 17 05:09 computation.csv
+-rw-r--r-- 1 root root    27 Aug 17 05:09 decryption.csv
+-rw-r--r-- 1 root root    27 Aug 17 05:09 encryption.csv
+-rw-r--r-- 1 root root 96244 Aug 17 05:09 label.csv
+-rw-r--r-- 1 root root 89033 Aug 17 05:09 probability.csv
+-rw-r--r-- 1 root root  4000 Aug 17 05:09 result_cipher_label.txt
+-rw-r--r-- 1 root root    26 Aug 17 05:09 roundtrip.csv
+```
+
+### description of each output files
+
+- computation.csv: time for server side computation
+- decryption.csv:    time for client side decryption
+- encryption.csv:    time for client side encryption
+- label.csv:             columns is index, id, class (index is aligned with probability.csv and result_cipher_label.csv, id is id from fasta file, class is index of the strain)
+- probability.csv:     probabilities of each DNA sequence (order is same with index of label.csv)
+- roundtrip.csv :      time for entire cipher classification
+
+<br>
+
+## How To Use Model2
+
+
+
+<br>
+<br>
+
+## Licences
+
+Microsoft SEAL
+
+```
+MIT License
+
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE
+```
