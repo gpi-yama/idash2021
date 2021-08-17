@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update && \
     apt-get install -y build-essential wget m4 file git vim libomp-dev libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
-RUN        apt-get clean && rm -rf /var/lib/apt-get/lists/*
+RUN apt-get clean && rm -rf /var/lib/apt-get/lists/*
 
 # CMake Installation 
 WORKDIR /include
@@ -44,7 +44,7 @@ RUN git clone https://github.com/pyenv/pyenv.git ~/.pyenv &&\
 
 COPY requirements.txt /from_local/
 
-COPY ./ /idash2021
+RUN git clone https://gitlab.com/yama_ry/idash2021 /idash2021
 
 WORKDIR /from_local
 
@@ -52,3 +52,5 @@ RUN  source ~/.bashrc &&\
     pyenv virtualenv ${PYTHON_VERSION} myenv && pyenv global ${PYTHON_VERSION} && source activate myenv
 
 RUN ~/.pyenv/versions/myenv/bin/pip install --upgrade pip setuptools && ~/.pyenv/versions/myenv/bin/pip install -r requirements.txt
+
+WORKDIR /idash2021
