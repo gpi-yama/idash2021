@@ -489,7 +489,7 @@ round_trip_time[ms], encryption_time[ms], computation_time[ms], decryption_time[
 949,176, 418, 340
 ```
 
-Note that, preprocessing time is not included in this file. Please check the stdout of preprocessing if you need the preprocessing time. You can use `total time` of the stdout as that time.
+Note that, preprocessing time is not included in this file. Please check the stdout of preprocessing if you need the preprocessing time. You can use `preprocessing_time` of the stdout as that time.
 
 
 ## Licences
