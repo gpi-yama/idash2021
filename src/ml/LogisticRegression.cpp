@@ -39,13 +39,14 @@ namespace capsuleGene
 
     void LogisticRegression::set_bias(const std::vector<float> &bias)
     {
-        uint32_t i, j, k;
+        uint32_t i, j;
         uint32_t slot_per_feat = pow(2, int(log2(input_dim) + 1));
+        uint32_t num_vecs_in_single_ctxt = uint32_t(slot_size / 2 / slot_per_feat);
 
 #pragma omp parallel for
         for (i = 0; i < output_dim; i++)
         {
-            for (j = 0; j < int(slot_size / 2 / slot_per_feat); j++)
+            for (j = 0; j < num_vecs_in_single_ctxt; j++)
             {
                 this->bias[i][j * slot_per_feat] = bias[i];
             }
@@ -56,11 +57,12 @@ namespace capsuleGene
     {
         uint32_t i, j, k;
         uint32_t slot_per_feat = pow(2, int(log2(input_dim) + 1));
+        uint32_t num_vecs_in_single_ctxt = uint32_t(slot_size / 2 / slot_per_feat);
 
 #pragma omp parallel for
         for (i = 0; i < output_dim; i++)
         {
-            for (j = 0; j < int(slot_size / 2 / slot_per_feat); j++)
+            for (j = 0; j < num_vecs_in_single_ctxt; j++)
             {
                 for (k = 0; k < input_dim; k++)
                 {

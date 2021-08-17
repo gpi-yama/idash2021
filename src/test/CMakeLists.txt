@@ -22,8 +22,6 @@ if(SEAL_BUILD_EXAMPLES)
             testAlgebra.cpp
             ../server/ServerSide.cpp
             ../client/ClientSide.cpp
-            ../postprocess/SigmoidPostprocessor.cpp
-            ../preprocess/DummyPreprocessor.cpp
             ../utils/IOUtils.cpp
             ../utils/mathUtils.cpp
             ../ml/algebra.cpp

@@ -21,13 +21,9 @@ def feature_preprocess(comp_dim=5, data_dir="data"):
 
   with open(data_file_name, "wb") as f:
     pickle.dump(executor, f)
-  
-  #np.savetxt(f'{data_dir}/pca_{comp_dim}_mean.csv', executor.mean_)
-  #np.savetxt(f'{data_dir}/pca_{comp_dim}_components.csv', executor.components_)
-  #np.savetxt(f'{data_dir}/pca_{comp_dim}_variance.csv', executor.explained_variance_)
 
   np.save(f'{data_dir}/pca_{comp_dim}_mean.npy', executor.mean_.astype("float32"))
-  np.save(f'{data_dir}/pca_{comp_dim}_components.npy', executor.components_.astype("float32"))
+  np.save(f'{data_dir}/pca_{comp_dim}_components.npy', executor.components_.reshape(-1).astype("float32"))
   np.save(f'{data_dir}/pca_{comp_dim}_variance.npy', executor.explained_variance_.astype("float32"))
   return X, y
 

@@ -1,7 +1,6 @@
 #include "../common.h"
 #include "../ml/LogisticRegression.h"
 #include "../ml/CoefLogisticRegression.h"
-#include "../ml/MiharaLogisticRegression.hpp"
 
 namespace capsuleGene
 {

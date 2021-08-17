@@ -1,4 +1,4 @@
-#include <chrono>
+#include "utils/Timer.hpp"
 #include "common.h"
 #include "server/ServerSide.h"
 #include "client/ClientSide.h"
@@ -6,179 +6,119 @@
 using namespace capsuleGene;
 
 
-int main_batch()
+int main_batch(std::string parameter_folder, std::string output_path)
 {
-    std::chrono::system_clock::time_point start, end, start1, end1;
-    double elapsed;
-    start = std::chrono::system_clock::now();
+    Timer timer_all;
+    int batch_size;
+    double computation_time, encryption_time, decryption_time, round_trip_time;
+    batch_size = IOUtils::load_batch_size_from_file(parameter_folder+"/batch_size.txt");
 
-    // ----------- define parameters -------------
-    const double scale = pow(2.0, 30);
-    const int poly_modulus_degree = 4096;
-    const std::vector<int32_t> modulus = {38, 30, 38};
-    // -----------------------------------------
+    // load preprocessed features
+    std::vector<std::vector<float>> features(batch_size, std::vector<float>(N_COMPONENTS));
+    IOUtils::read_binary_vector2d(parameter_folder+"/features.bin", features, batch_size, N_COMPONENTS);
 
-    // if you want to know 128bit max coefs please use this.
-    // auto a = CoeffModulus::MaxBitCount(4096);
-    // std::cout << a << std::endl;
+    // Client encryption
+    Timer local_timer;
+    ClientSide client;
+    client.generate_keys(SCALE, MODULUS, POLY_MODULUS_DEGREE);
+    const std::vector<Ciphertext> enc_input = client.batch_encrypt(features);
+    encryption_time = local_timer.end();
+    std::cout << "[client] encryption time: " << encryption_time << std::endl;
+    local_timer.reset();
 
-    // ----------- input ----------
-    // const std::vector<std::string> input(100, "TEST");
-    const std::string path = "/home/yamaguchi/idash2021/dataset/Challenge_test.fa";
-    const std::string data_path = "/home/yamaguchi/idash2021/data/";
-    const int input_dim = N_COMPONENTS;
-    const int output_dim = Y_COLUMN;
-    // ----------------------------
-    std::string path_pca_components = data_path + "pca_" + std::to_string(input_dim) + "_components.npy";
-    std::string path_pca_variance = data_path + "pca_" + std::to_string(input_dim) + "_variance.npy";
-    std::string path_pca_mean = data_path + "pca_" + std::to_string(input_dim) + "_mean.npy";
-    std::string usable_index = "hoge";
-
-    start1 = std::chrono::system_clock::now();
-    std::shared_ptr<Preprocessor> preprocessor = std::make_shared<Preprocessor>(path_pca_components, path_pca_mean, path_pca_variance, usable_index);
-
-    ClientSide client(preprocessor);
-    client.generate_keys(scale, modulus, poly_modulus_degree);
-    const std::vector<Ciphertext> enc_input = client.process(path);
-
-    end1 = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
-    std::cout << "client time: " << elapsed << std::endl;
-
-    LogisticRegression ml(input_dim, output_dim, scale, poly_modulus_degree, client.getEvaluator(), client.getEncoder(), client.getGalKey(), client.getRelinKeys());
-
-    start1 = std::chrono::system_clock::now();
-
+    // Server computation:
+    LogisticRegression ml(N_COMPONENTS, Y_COLUMN, SCALE, POLY_MODULUS_DEGREE, client.getEvaluator(), client.getEncoder(), client.getGalKey(), client.getRelinKeys());
     ServerSide server(ml);
-    std::cout << "load_weight" << std::endl;
-    server.load_weight("/home/yamaguchi/idash2021/data/coef_" + std::to_string(input_dim) + ".npy");
-    server.load_bias("/home/yamaguchi/idash2021/data/bias_" + std::to_string(input_dim) + ".npy");
-    std::cout << "proess" << std::endl;
+    server.load_weight(parameter_folder + "/coef_" + std::to_string(N_COMPONENTS) + ".npy");
+    server.load_bias(parameter_folder + "/bias_" + std::to_string(N_COMPONENTS) + ".npy");
     const std::vector<std::vector<Ciphertext>> enc_result = server.process(enc_input);
+    computation_time = local_timer.end();
+    std::cout << "[server] computation time: " << computation_time << std::endl;
+    local_timer.reset();
 
-    end1 = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
-    std::cout << "server time: " << elapsed << std::endl;
-
-    start1 = std::chrono::system_clock::now();
-
+    // decryption
     std::vector<std::vector<double>> result = client.postprocess(enc_result);
+    decryption_time = local_timer.end();
+    std::cout << "[client] decryption time: " << local_timer.end() << std::endl;
+    IOUtils::write_prob_to_file(result, output_path+"/result.csv");
+    std::cout << "total time: " << round_trip_time << std::endl;
+    local_timer.reset();
 
-    end1 = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
-    std::cout << "client post process time: " << elapsed << std::endl;
-
-    // calculate accuracy
-    std::vector<std::vector<float>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/dataset/test_answer.txt", false, false);
-    int max, i;
-    int N = ans.size();
-    float acc = 0.0;
-
-    for (i = 0; i < N; i++)
-    {
-        max = distance(result[i].begin(), std::max_element(result[i].begin(), result[i].end()));
-        acc += int(max == int(ans[i][0]));
-        for (auto v : result[i])
-        {
-        std::cout << v << ", ";
-        }
-        std::cout << i << "," << max << ", ans:" << ans[i][0] << std::endl;
-    }
-
-    std::cout << "ACC: " << acc / N << std::endl;
-    end = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "total time: " << elapsed << std::endl;
-
+    // write results
+    round_trip_time = timer_all.end();
+    std::ofstream fmetrics(output_path + "/metrics.csv");
+    fmetrics << "round_trip_time[ms], encryption_time[ms], computation_time[ms], decryption_time[ms]" << std::endl;
+    fmetrics << round_trip_time << "," << encryption_time << ", " << computation_time << ", " << decryption_time << std::endl;
+    fmetrics.close();
     return 0;
 }
 
 // this is coef encoded lr
-int main_coef(){
-    std::chrono::system_clock::time_point start, end, start1, end1;
-    double elapsed;
-    start = std::chrono::system_clock::now();
+int main_coef(std::string parameter_folder, std::string output_path){
+    Timer timer_all;
+    int batch_size;
+    double computation_time, encryption_time, decryption_time, round_trip_time;
+    batch_size = IOUtils::load_batch_size_from_file(parameter_folder+"/batch_size.txt");
 
-    // ----------- define parameters -------------
-    const double scale = pow(2.0, 40);
-    const int poly_modulus_degree = 8192;
-    const std::vector<int32_t> modulus = {60, 40, 60};
-    // -----------------------------------------
+    // load preprocessed features
+    std::vector<std::vector<float>> features(batch_size, std::vector<float>(N_COMPONENTS));
+    IOUtils::read_binary_vector2d(parameter_folder+"/features.bin", features, batch_size, N_COMPONENTS);
 
-    // if you want to know 128bit max coefs please use this.
-    // auto a = CoeffModulus::MaxBitCount(4096);
-    // std::cout << a << std::endl;
+    // Client encryption
+    Timer local_timer;
+    ClientSide client;
+    client.generate_keys(SCALE, MODULUS, POLY_MODULUS_DEGREE);
+    const std::vector<Ciphertext> enc_input = client.coef_encrypt(features);
+    encryption_time = local_timer.end();
+    std::cout << "[client] encryption time: " << encryption_time << std::endl;
+    local_timer.reset();
 
-    // ----------- input ----------
-    const std::string path = "/home/yamaguchi/idash2021/dataset/Challenge_test.fa";
-    const std::string data_path = "/home/yamaguchi/idash2021/data/";
-    const int input_dim = N_COMPONENTS;
-    const int output_dim = Y_COLUMN;
-    // ----------------------------
-    std::string path_pca_components = data_path + "pca_" + std::to_string(input_dim) + "_components.npy";
-    std::string path_pca_variance = data_path + "pca_" + std::to_string(input_dim) + "_variance.npy";
-    std::string path_pca_mean = data_path + "pca_" + std::to_string(input_dim) + "_mean.npy";
-    std::string usable_index = "hoge";
-    // ----------------------------
-
-    start1 = std::chrono::system_clock::now();
-    std::shared_ptr<Preprocessor> preprocessor = std::make_shared<Preprocessor>(path_pca_components, path_pca_mean, path_pca_variance, usable_index);
-    ClientSide client(preprocessor);
-    client.generate_keys(scale, modulus, poly_modulus_degree);
-    const std::vector<Ciphertext> enc_input = client.process_as_coef(path);
-
-    end1 = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
-    std::cout << "client time: " << elapsed << std::endl;
-
-    CoefLogisticRegression ml(input_dim, output_dim, scale, poly_modulus_degree, client.getEvaluator(), client.getEncoder(), client.getGalKey(), client.getRelinKeys());
-
-    start1 = std::chrono::system_clock::now();
-
+    // Server inference
+    CoefLogisticRegression ml(N_COMPONENTS, Y_COLUMN, SCALE, POLY_MODULUS_DEGREE, client.getEvaluator(), client.getEncoder(), client.getGalKey(), client.getRelinKeys());
     ServerSide server(ml);
-    server.load_weight("/home/yamaguchi/idash2021/data/coef_200.npy");
-    server.load_bias("/home/yamaguchi/idash2021/data/bias_200.npy");
+    server.load_weight(parameter_folder + "/coef_" + std::to_string(N_COMPONENTS) + ".npy");
+    server.load_bias(parameter_folder + "/bias_" + std::to_string(N_COMPONENTS) + ".npy");
     const std::vector<std::vector<Ciphertext>> enc_result = server.process(enc_input);
+    computation_time = local_timer.end();
+    std::cout << "[server] computation time: " << computation_time << std::endl;
+    local_timer.reset();
 
-    end1 = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
-    std::cout << "server time: " << elapsed << std::endl;
-
-    start1 = std::chrono::system_clock::now();
-
+    // Client postprocessing
     std::vector<std::vector<double>> result = client.postprocess_as_coef(enc_result);
+    decryption_time = local_timer.end();
+    std::cout << "[client] decryption time: " << decryption_time << std::endl;
+    local_timer.reset();
+    
+    // write results
+    IOUtils::write_prob_to_file(result, output_path+"/result.csv");
+    round_trip_time = timer_all.end();
+    std::cout << "total time: " << round_trip_time << std::endl;
 
-    end1 = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
-    std::cout << "client post process time: " << elapsed << std::endl;
-
-    // calculate accuracy
-    std::vector<std::vector<float>> ans = IOUtils::read_csv("/home/yamaguchi/idash2021/dataset/test_answer.txt", false, false);
-    int max, i, j;
-    int N = ans.size();
-    float acc = 0.0;
-
-    for (i = 0; i < N; i++)
-    {
-        max = distance(result[i].begin(), std::max_element(result[i].begin(), result[i].end()));
-        for (auto v : result[i])
-        {
-        std::cout << v << ", ";
-        }
-        std::cout << i << "," << max << ", ans:" << ans[i][0] << std::endl;
-        acc += int(max == int(ans[i][0]));
-    }
-
-    std::cout << "ACC: " << acc / N << std::endl;
-    end = std::chrono::system_clock::now();
-    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "total time: " << elapsed << std::endl;
-
+    std::ofstream fmetrics(output_path + "/metrics.csv");
+    fmetrics << "round_trip_time[ms], encryption_time[ms], computation_time[ms], decryption_time[ms]" << std::endl;
+    fmetrics << round_trip_time << "," << encryption_time << ", " << computation_time << ", " << decryption_time << std::endl;
+    fmetrics.close();
     return 0;
 }
 
-int main(){
-    // main_batch();
-    main_coef();
+int main(int argc, char *argv[]){
+    if (argc != 2){
+        std::cerr << "usage: ./bin/pred_rna /path/to/output_folder" << std::endl;
+        return -1;
+    }
+    // 
+    std::string parameter_folder = "../data";
+    std::string output_path = argv[1];
+
+    printf("------------------------\n");
+    printf("output_folder: %s\n", output_path.c_str());
+    printf("parameter_folder: %s\n", parameter_folder.c_str());
+    printf("--- start prediction ---\n");
+    // if you want to run with basic lr method
+    // main_batch(parameter_folder, output_path);
+    // if you want to use coefficient encoding lr pelase use this function
+    main_coef(parameter_folder, output_path);
+    printf("---- end prediction ----\n");
+    
     return 0;
 }

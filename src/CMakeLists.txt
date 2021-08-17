@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(SEALExamples VERSION 3.6.2 LANGUAGES CXX)
+project(IDASH2021TRACK2 VERSION 3.6.2 LANGUAGES CXX)
 
 # If not called from root CMakeLists.txt
 set(CMAKE_CXX_STANDARD 20)
@@ -13,9 +13,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 set(CMAKE_CXX_FLAGS "-O3 -march=native -mavx512f -Ofast -fpermissive -fopenmp")
 # -g -msse4.2
-add_executable(sealexamples)
+add_executable(pred_rna)
+add_executable(preprocessing)
 
-target_sources(sealexamples
+target_sources(pred_rna
     PRIVATE
         main.cpp
         server/ServerSide.cpp
@@ -30,5 +31,14 @@ target_sources(sealexamples
         ml/CoefLogisticRegression.cpp
 )
 
-target_link_libraries(sealexamples PRIVATE SEAL::seal
-                    Eigen3::Eigen)
+target_sources(preprocessing
+    PRIVATE
+        main_preprocessing.cpp
+        preprocess/PreProcessor.cpp
+        utils/IOUtils.cpp
+        utils/npy.h
+)
+
+
+target_link_libraries(pred_rna PRIVATE SEAL::seal)
+target_link_libraries(preprocessing PRIVATE SEAL::seal)

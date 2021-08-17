@@ -148,7 +148,6 @@ namespace capsuleGene
                     break;
 
                 std::vector<float> row;
-                int col_count = 0;
                 out[row_count] = stof(line);
                 row_count++;
             }
@@ -177,13 +176,6 @@ namespace capsuleGene
         npy::LoadArrayFromNumpy(path, shape, fortran_order, out);
     }
 
-    void IOUtils::read_matrix_npy(const std::string path, std::vector<std::vector<float>> &out){
-        // std::vector<unsigned long> shape;
-        // bool fortran_order;
-        // std::vector<std::vector<double>> data;
-        // npy::LoadArrayFromNumpy(path, shape, fortran_order, out);
-    }
-
     void IOUtils::read_binary_vector(const std::string path, std::vector<float> &vec){
         std::ifstream fin(path, std::ios::in | std::ios::binary);
         fin.read((char*)&vec[0], vec.size()*sizeof(vec[0]));
@@ -194,5 +186,73 @@ namespace capsuleGene
         std::ofstream fout(path, std::ios::out | std::ios::binary);
         fout.write((char*)&vec[0], vec.size()*sizeof(vec[0]));
         fout.close();
+    }
+
+
+    void IOUtils::read_binary_vector2d(const std::string path, std::vector<std::vector<float>> &vec2d, uint32_t num_row, uint32_t num_col){
+        std::ifstream file(path, std::ios::in | std::ofstream::binary);
+        for(uint32_t i = 0; i < num_row; i++ )
+        {
+            file.read((char*)&vec2d[i][0], num_col*sizeof(vec2d[i][0]));
+        }
+        file.close();
+    }
+    
+    void IOUtils::write_binary_vector2d(const std::string path, std::vector<std::vector<float>> &vec2d){
+        std::ofstream file(path, std::ios::out | std::ofstream::binary);
+        uint32_t N = vec2d.size();
+        uint32_t M = vec2d[0].size();
+
+        for(size_t i = 0; i < N; i++ )
+        {
+            file.write((char*)&vec2d[i][0], M*sizeof(vec2d[i][0]));
+        }
+        file.close();
+    }
+
+    void IOUtils::write_prob_to_file(std::vector<std::vector<double>> &x, std::string filename){
+        std::ofstream myfile(filename);
+        uint32_t i, j;
+        uint32_t N = x.size();
+        uint32_t M = x[0].size();
+
+        myfile << "index, B.1.427, B.1.1.7, P.1, B.1.526" << std::endl;
+        for (i = 0; i < N; i++)
+        {
+            myfile << i << ", ";
+            for (j = 0; j < M; j++)
+            {
+                myfile << x[i][j];
+                if (j < M - 1) {
+                    myfile << ", ";
+                }
+            }
+            myfile << std::endl;
+        }
+        myfile.close();
+    }
+
+    void IOUtils::write_label_to_file(std::vector<std::string> &x, std::string filename){
+        std::ofstream myfile(filename);
+        int vsize = x.size();
+        for (int n=0; n<vsize; n++)
+        {
+            myfile << x[n] << std::endl;
+        }
+        myfile.close();
+    }
+
+    void IOUtils::write_batch_size_to_file(int batch_size, std::string filename){
+        std::ofstream myfile(filename);
+        myfile << batch_size << std::endl;
+        myfile.close();
+    }
+
+    int IOUtils::load_batch_size_from_file(std::string filename){
+        std::ifstream file(filename);
+        std::string line;
+        std::getline(file, line);
+        file.close();
+        return stoi(line);
     }
 }

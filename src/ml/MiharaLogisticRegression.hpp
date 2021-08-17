@@ -2,7 +2,6 @@
 #include "ML.h"
 #include <iostream>
 #include <algorithm>
-#include <cassert>
 #include <string>
 #include <fstream>
 #include <chrono>
@@ -28,8 +27,6 @@ namespace capsuleGene
         int slot_size;        
 
     std::vector<std::vector<double>> pp_xs(std::vector<std::vector<double>> xs, int l, int ls, int n, int dim, int bs){
-    assert(xs.size() == bs);
-    assert(xs[0].size() == dim);
 
     std::vector<std::vector<double>> res;
     for(int i=0; i<n-1; i++){
@@ -49,13 +46,11 @@ namespace capsuleGene
         }
     }
     res.push_back(tmp);
-    assert(res.size()==n);
     return res;
     }
 
 
     std::vector<double> pp_w(std::vector<double> w, int dim){
-    assert(w.size() == dim);
     std::reverse(w.begin(), w.end());
     return w;
     }
@@ -144,8 +139,6 @@ namespace capsuleGene
     }
 
     std::vector<double> psp_res(std::vector<std::vector<double>> xs, int l, int ls, int n, int dim, int bs){
-    assert(xs.size() == n);
-    assert(n > 0);
 
     std::vector<double> res;
     for(int i=0; i<n-1; i++){
@@ -161,9 +154,6 @@ namespace capsuleGene
 
 
     std::vector<double> debug(std::vector<std::vector<double>> xs, std::vector<double> w, double b, int dim, int bs){
-    assert(xs.size() == bs);
-    assert(xs[0].size() == dim);
-    assert(w.size() == dim);
 
     std::vector<std::vector<double>> tmp1;
     for(int i=0; i<bs; i++){
@@ -228,13 +218,13 @@ namespace capsuleGene
 
         // setter
         void set_bias(const std::vector<float> &bias) override {
-            int i;
+            uint32_t i;
             for (i = 0; i < output_dim; i++){
                 this->bias[i] = this->pp_b(bias[i], this->slot_size);
             }
         }
         void set_weight(const std::vector<float> &weight) override {
-            int i, j;
+            uint32_t i, j;
             for (i = 0; i < output_dim; i++){
                 for (j = 0; j < input_dim; j++){
                     this->weight[i][j] = weight[i*input_dim + j];

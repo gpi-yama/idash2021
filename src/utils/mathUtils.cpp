@@ -61,4 +61,17 @@ namespace capsuleGene
         }
         return output;
     }
+
+    std::vector<std::string> MathUtils::parse_results(std::vector<std::vector<double>> &result, const int batch_size){
+        int max, i;
+        const std::array<std::string, 4> index2label = {{"B.1.427","B.1.1.7","P.1","B.1.526"}};
+        std::vector<std::string> argmax_indices(batch_size);
+    #pragma omp parallel for
+        for (i = 0; i < batch_size; i++)
+        {
+            max = std::distance(result[i].begin(), std::max_element(result[i].begin(), result[i].end()));
+            argmax_indices[i] = index2label[max];
+        }
+        return argmax_indices;
+    }
 }

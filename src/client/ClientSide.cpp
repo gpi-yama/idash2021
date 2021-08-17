@@ -44,18 +44,6 @@ namespace capsuleGene
         this->relin_keys = std::make_shared<RelinKeys>(relin_keys);
     }
 
-    std::vector<std::vector<float>> ClientSide::preprocess(const std::string input_path)
-    {
-        std::vector<std::vector<float>> feat = this->preprocessor->process(input_path);
-        for (int i = 0; i < 10; i++){
-            for (int j = 0; j < 5; j++){
-                std::cout << feat[i][j] << ",";
-            }
-            std::cout << std::endl;
-        }
-        return feat;
-    }
-
     std::vector<Ciphertext> ClientSide::encrypt(const std::vector<std::vector<double>> &input)
     {
         uint32_t i, size = input.size();
@@ -169,12 +157,12 @@ namespace capsuleGene
     }
 
     std::vector<Ciphertext> ClientSide::encrypt_as_coef(const std::vector<std::vector<double>> &x, const std::shared_ptr<CKKSEncoder> &encoder, const std::shared_ptr<Encryptor> &encryptor, const double scale){
-        uint32_t n = x.size();
+        uint32_t i, n = x.size();
         std::vector<Ciphertext> res(n);
         std::vector<Plaintext> tmp;
         Plaintext plain;
 #pragma omp parallel for private(plain)
-        for(int i=0; i<n; i++){
+        for(i=0; i<n; i++){
             encoder->encode_as_coeff(x[i], scale, plain);
             encryptor->encrypt(plain, res[i]);
         }
@@ -201,25 +189,24 @@ namespace capsuleGene
         return res;
     }
 
-    std::vector<std::vector<double>> ClientSide::pack_vector_for_coef(std::vector<std::vector<float>> &xs, int l, int ls, int n){
-        uint32_t bs = xs.size();
+    std::vector<std::vector<double>> ClientSide::pack_vector_for_coef(const std::vector<std::vector<float>> &xs, const int l, const int ls, const int n){
         uint32_t dim = xs[0].size();
         uint32_t i, j, k;
 
         std::vector<std::vector<double>> res;
-        for(int i=0; i<n-1; i++){
+        for(i=0; i<n-1; i++){
             std::vector<double> tmp;
-            for(int j=0; j<l; j++){
-            for(int k=0; k<dim; k++){
-                tmp.push_back(xs[i*l+j][k]);
-            }
+            for(j=0; j<l; j++){
+                for(k=0; k<dim; k++){
+                    tmp.push_back(xs[i*l+j][k]);
+                }
             }
             res.push_back(tmp);
         }
 
         std::vector<double> tmp;
-        for(int j=0; j<ls; j++){
-            for(int k=0; k<dim; k++){
+        for(j=0; j<ls; j++){
+            for(k=0; k<dim; k++){
             tmp.push_back(xs[(n-1)*l+j][k]);
             }
         }
@@ -227,7 +214,7 @@ namespace capsuleGene
         return res;
     }
 
-    std::vector<double> ClientSide::unpack_vector_for_coef(std::vector<std::vector<double>> &xs, int l, int ls, int n, int dim, int bs){
+    std::vector<double> ClientSide::unpack_vector_for_coef(const std::vector<std::vector<double>> &xs, const int l, const int ls, const int n, const int dim, const int bs){
         std::vector<double> res;
         for(int i=0; i<n-1; i++){
             for(int j=0; j<l; j++){
@@ -240,29 +227,20 @@ namespace capsuleGene
         return res;
     }
 
-
-    std::vector<Ciphertext> ClientSide::process(const std::string input_path)
-    {
-        return this->batch_encrypt(ClientSide::preprocess(input_path));
-    }
-
-    std::vector<Ciphertext> ClientSide::process_as_coef(const std::string input_path){
-        std::vector<std::vector<float>> features = this->preprocessor->process(input_path);
-
-        int bs = features.size();
-        int dim = features[0].size();
+    std::vector<Ciphertext> ClientSide::coef_encrypt(const std::vector<std::vector<float>> &input){
+        int bs = input.size();
+        int dim = input[0].size();
         coef_params = CoefParams(dim, bs, poly_modulus_degree);
 
-        std::vector<std::vector<double>> packed_vectors = ClientSide::pack_vector_for_coef(features, coef_params.l, coef_params.ls, coef_params.n);
+        std::vector<std::vector<double>> packed_vectors = ClientSide::pack_vector_for_coef(input, coef_params.l, coef_params.ls, coef_params.n);
         std::vector<Ciphertext> ctxt_list = ClientSide::encrypt_as_coef(packed_vectors, encoder, encryptor, scale);
         return ctxt_list;
     }
 
     std::vector<std::vector<double>> ClientSide::postprocess(const std::vector<std::vector<Ciphertext>> &x)
     {
-        uint32_t i, size = x.size();
         std::vector<std::vector<double>> result = this->batch_decrypt(x);
-        return result; //SoftmaxPostprocessor::process(result);
+        return SoftmaxPostprocessor::process(result);
     }
 
     std::vector<std::vector<double>> ClientSide::postprocess_as_coef(const std::vector<std::vector<Ciphertext>> &x){
@@ -298,8 +276,7 @@ namespace capsuleGene
     }
     std::shared_ptr<Decryptor> ClientSide::getDecryptor()
     {
-        throw std::runtime_error("You cannot get secret key!");
-        // return this->decryptor;
+        return this->decryptor;
     }
     std::shared_ptr<CKKSEncoder> ClientSide::getEncoder()
     {
@@ -311,8 +288,7 @@ namespace capsuleGene
     }
     std::shared_ptr<SecretKey> ClientSide::getSecretKey()
     {
-        throw std::runtime_error("You cannot get secret key!");
-        // return this->secret_key();
+        return this->secret_key;
     }
     std::shared_ptr<GaloisKeys> ClientSide::getGalKey()
     {

@@ -17,16 +17,10 @@
 #include "../utils/IOUtils.h"
 #include "../constants.h"
 
-const std::string DATA_PATH = "Data/Challenge.fa";
-const std::string BASIS_PATH = "Challenge/basis.csv";
-
 #include <cassert>
 
 namespace capsuleGene
 {
-
-    static const std::string rnaChar = "ACGTRYSWKMBDHVNO";
-
     class Preprocessor
     {
     private:
@@ -77,26 +71,6 @@ namespace capsuleGene
         // {'O', {0.f,   0.f,   0.f,   0.f}},  // NONE
         // };
 
-        // std::unordered_map<char, std::array<float, 4>> rnaMap{
-        // //     A    C    G    T
-        // {'A', {1,   0,   0,   0}},
-        // {'C', {0,   1,   0,   0}},
-        // {'G', {0,   0,   1,   0}},
-        // {'T', {0,   0,   0,   1}},
-        // {'R', {1, 0,   1, 0}},   // A or G
-        // {'Y', {0,   1, 0,   1}}, // C or T
-        // {'S', {0,   1, 1, 0}},  // G or C
-        // {'W', {1, 0,   0,   1}},  // A or T
-        // {'K', {0,   0,   1, 1}},  // G or T
-        // {'M', {1, 1, 0,   0}},  // A or C
-        // {'B', {0,   1,1,1}},  // C or G or T
-        // {'D', {1,0,   1,1}},  // A or G or T
-        // {'H', {1,1,0,   1}},  // A or C or T
-        // {'V', {1,1,1,0}},  // A or C or G
-        // {'N', {1,1,1,1}},  // any base
-        // {'O', {0.,  0.,  0.  ,0.}},  // NONE
-        // };
-
 
     private:
 
@@ -117,14 +91,6 @@ namespace capsuleGene
          * @return std::vector<double> 
          */
         static std::vector<double> split_to_float(const std::string &s, char delim);
-
-        /**
-         * @brief load dict
-         * 
-         * @param filename 
-         * @return std::multimap<std::string, std::vector<std::string>> 
-         */
-        static std::multimap<std::string, std::vector<std::string>> load_dictionary(std::string filename);
 
         /**
          * @brief load sequences
@@ -159,29 +125,19 @@ namespace capsuleGene
          */
         static void load_variance(std::string path, std::vector<float> &out);
 
-        static void multilabel_binarize(std::vector<std::vector<float>>& buf,std::vector<std::string>& seqs,std::multimap<std::string,std::vector<std::string>>& dic);
-
         void binarize_by_existance(std::vector<std::vector<float>>& buf, std::vector<std::string>& seqs, std::unordered_map<char, int> rnaMap, const uint32_t batch_size);
 
-        static std::vector<float> dot(std::vector<float> &x, std::vector<std::vector<float>> &m);
-
-        static std::vector<std::vector<float>> batch_dot(std::vector<std::vector<float>> &x, std::vector<std::vector<float>> &m);
-
     public:
-        Preprocessor(){
-            // delete mean;
-            // delete sqrt_variance;
-            // delete components;
-        };
         Preprocessor(const std::string path_pca_components, 
                      const std::string path_pca_mean, 
-                     const std::string path_pca_variance, 
-                     const std::string path_dictionary);
+                     const std::string path_pca_variance);
 
         std::vector<std::vector<float>> process(const std::string data_path);
 
         void load_and_binarize(const std::string data_path, std::vector<std::vector<float>> &X);
 
         void pca(std::array<float, X_COLUMN> &X, std::vector<float> &out);
+
+        
     };
 }
