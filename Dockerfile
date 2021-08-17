@@ -44,6 +44,8 @@ RUN git clone https://github.com/pyenv/pyenv.git ~/.pyenv &&\
 
 COPY requirements.txt /from_local/
 
+COPY ./ /idash2021
+
 WORKDIR /from_local
 
 RUN  source ~/.bashrc &&\
