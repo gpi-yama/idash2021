@@ -413,15 +413,14 @@ This algorithm requires preprocessing with PCA. Therefore before running algorit
 ```sh
 $ ./bin/preprocessing /data/Challenge.fa
 
-------------------------
-output_folder: /output_path
+---------------------------
+input_path: /data/Challenge.fa
 parameter_folder: ../data
---- start prediction ---
-[client] encryption time: 176
-[server] computation time: 418
-[client] decryption time: 340
-total time: 949
----- end prediction ----
+--- start preprocessing ---
+ls /idash2021/data/features.bin
+preprocessing_time[ms]: 42261
+---- end preprocessing ----
+
 ```
 where the argument represents the fastafile that you mounted at /data/Challenge.fa with docker run command.
 
