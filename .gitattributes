@@ -1,3 +1,9 @@
+data/bias_200.npy filter=lfs diff=lfs merge=lfs -text
+data/coef_200.npy filter=lfs diff=lfs merge=lfs -text
+data/pca_200.pkl filter=lfs diff=lfs merge=lfs -text
+data/pca_200_components.npy filter=lfs diff=lfs merge=lfs -text
+data/pca_200_mean.npy filter=lfs diff=lfs merge=lfs -text
+data/pca_200_variance.npy filter=lfs diff=lfs merge=lfs -text
 *.npy filter=lfs diff=lfs merge=lfs -text
 *.pkl filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
